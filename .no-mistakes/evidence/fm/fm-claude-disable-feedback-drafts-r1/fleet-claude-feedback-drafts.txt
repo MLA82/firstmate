@@ -1,0 +1,19 @@
+Fleet Claude feedback-draft end-to-end evidence
+================================================
+
+[Crewmate user-facing spawn result]
+warning: /Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/home/data/crew-proof/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned crew-proof harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-crew-proof worktree=/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/wt
+[Crewmate terminal launch payload]
+env -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off"}' "$('/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/bin/fm-operational-input.sh' encode launch-brief < '/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/home/data/crew-proof/launch-brief.md')"
+
+[Secondmate user-facing spawn result]
+warning: secondmate second-proof sync skipped before launch: primary default-branch commit cannot be resolved
+spawned second-proof harness=claude kind=secondmate mode=secondmate yolo=off window=firstmate:fm-second-proof worktree=/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/secondmate
+[Secondmate terminal launch payload]
+FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME='/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/home' FM_HOME='/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/secondmate' FM_TRACE_CONTEXT=off FM_SUPERVISION_MODEL=autoarm env -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off"}' "$('/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/fleetroot/bin/fm-operational-input.sh' encode launch-brief < '/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MGK8TP05AJD4P6V51KK5W5/.test-evidence-tmp/secondmate/data/charter.md')"
+
+[Credentialed Claude runtime check using the same feedback controls]
+claude_version=2.1.259
+SendFeedback_tool_present=false
+feedback_related_tools=
