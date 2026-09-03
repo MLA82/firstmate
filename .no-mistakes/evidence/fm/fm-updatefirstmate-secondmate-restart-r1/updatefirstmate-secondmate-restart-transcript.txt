@@ -1,0 +1,20 @@
+=== Update classification ===
+$ fm-update.sh  # after AGENTS.md, bin/, and .agents/skills/ advance
+firstmate: updated 45644e0..b181132 (instructions changed: AGENTS.md, bin, .agents/skills)
+secondmate sm1: updated 45644e0..b181132 (instructions changed: AGENTS.md, bin, .agents/skills)
+reread-firstmate: yes
+restart-secondmates: fm-sm1
+nudge-secondmates: none
+
+=== Persist-then-restart execution ===
+$ fm-secondmate-restart.sh fm-sm1
+restarted: sm1 (codex)
+summary: 1 of 1 restarted, 0 nudged, 0 unreached
+exit-status: 0
+
+Observed endpoint sequence:
+1. persist request delivered to the running mate
+2. old agent exited only after its correlated reply
+3. replacement agent launched on the newly pinned runtime
+durable reply state: phase=resolved
+recorded replacement profile: harness=codex
