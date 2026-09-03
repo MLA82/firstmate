@@ -1,0 +1,13 @@
+{
+  "scenario": "real fm-bearings-snapshot CLI against synthetic large local home",
+  "serial_seconds": 7,
+  "concurrent_seconds": 2,
+  "seconds_saved": 5,
+  "serial_projection_sha256": "70359e6d3129688b5444e67bd015c3efa826912ae4359e53356b199440d0a693",
+  "concurrent_projection_sha256": "70359e6d3129688b5444e67bd015c3efa826912ae4359e53356b199440d0a693",
+  "projections_byte_identical": true,
+  "worker_rows": 5,
+  "expected_worker_rows": 5,
+  "done_backlog_rows": 300
+}
+ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections
