@@ -1,0 +1,16 @@
+# End-user generated instruction evidence
+
+## Fresh no-mistakes ship brief: structured gate contract
+   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MNSD12SARYH1TFWHZTYX57/.nm-test-evidence/home/data/demo-no-mistakes/nm-<run>-findings.txt`, then report the gate with
+   `needs-decision [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MNSD12SARYH1TFWHZTYX57/.nm-test-evidence/home/data/demo-no-mistakes/nm-<run>-findings.txt`
+   naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
+
+## Promoted scout payload: same structured gate contract
+   For a no-mistakes ask-user gate specifically, escalate all ask-user findings as one event plus one snapshot file, using that same shape even when the gate holds only a single ask-user finding: write only the ask-user findings, verbatim and unparaphrased (id, severity, file, line, description, authority), to `/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MNSD12SARYH1TFWHZTYX57/.nm-test-evidence/home/data/promoted-demo/nm-<run>-findings.txt`, then report the gate with
+   `needs-decision [key=nm-<run>-<step>]: ask-user findings=<id1>,<id2>,... file=/Users/kunchen/.no-mistakes/worktrees/016d88035d58/01M1MNSD12SARYH1TFWHZTYX57/.nm-test-evidence/home/data/promoted-demo/nm-<run>-findings.txt`
+   naming every ask-user finding id from that gate. The status line only points at the file; it never restates or summarizes a finding's content.
+
+## Mode isolation check
+no-mistakes: structured no-mistakes snapshot instruction present=yes
+direct-PR: structured no-mistakes snapshot instruction present=no
+local-only: structured no-mistakes snapshot instruction present=no
