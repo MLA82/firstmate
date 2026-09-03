@@ -1,0 +1,76 @@
+$ bin/fm-bearings-snapshot.sh
+schema: fm-bearings.v1
+home: .bearings-e2e-fixture/home
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[1]{id,key,verb,summary,owner}:
+  recent-call,recent-call,captain-hold,"Fresh genuine decision: choose red or blue",(main)
+landed: []
+gates[2]{id,title,blocked_by,reason,owner}:
+  parked-call,Parked style call,"-",not urgent,(main)
+  aged-call,Old genuine decision,"-","held 40d: choose north or south",(main)
+reports: []
+recorded_prs: []
+omitted[8]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  "captain holds marked deferred, superseded, or aged: 2","--all-decisions"
+  live PR discovery + checks,"--include-prs"
+
+$ bin/fm-bearings-snapshot.sh --all-decisions
+schema: fm-bearings.v1
+home: .bearings-e2e-fixture/home
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[3]{id,key,verb,summary,owner}:
+  parked-call,parked-call,captain-hold,"Parked style call: not urgent",(main)
+  aged-call,aged-call,captain-hold,"Old genuine decision: choose north or south",(main)
+  recent-call,recent-call,captain-hold,"Fresh genuine decision: choose red or blue",(main)
+landed: []
+gates: []
+reports: []
+recorded_prs: []
+omitted[7]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  live PR discovery + checks,"--include-prs"
+
+$ FM_SNAPSHOT_UNDATED_HOLD_AGE_DAYS=50 bin/fm-bearings-snapshot.sh
+schema: fm-bearings.v1
+home: .bearings-e2e-fixture/home
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[2]{id,key,verb,summary,owner}:
+  aged-call,aged-call,captain-hold,"Old genuine decision: choose north or south",(main)
+  recent-call,recent-call,captain-hold,"Fresh genuine decision: choose red or blue",(main)
+landed: []
+gates[1]{id,title,blocked_by,reason,owner}:
+  parked-call,Parked style call,"-",not urgent,(main)
+reports: []
+recorded_prs: []
+omitted[8]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  "captain holds marked deferred, superseded, or aged: 1","--all-decisions"
+  live PR discovery + checks,"--include-prs"
