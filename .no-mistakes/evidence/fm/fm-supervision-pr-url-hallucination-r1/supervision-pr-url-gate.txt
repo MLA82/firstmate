@@ -1,0 +1,23 @@
+END-USER CHECK: supervision outcome URL provenance gate
+Worker durable status:
+done: PR https://github.com/kunchenguid/backpass/pull/108 checks green
+
+1. Attempt captain outcome with incident 404 URL:
+error: refusing to record an outcome carrying the pull request URL https://github.com/karpathy/backpass/pull/108, which is not in this task's durable records; copy the URL from the worker's own status line or the recorded PR instead of composing one
+exit=1
+durable_rows_after_refusal=0 (store not created)
+
+2. Attempt percent-encoded invented route marker:
+error: refusing to record an outcome carrying the pull request URL https://github.com/karpathy/backpass/%70ull/108, which is not in this task's durable records; copy the URL from the worker's own status line or the recorded PR instead of composing one
+exit=1
+
+3. Copy the real URL from the worker status:
+1
+exit=0
+
+Captain-facing unread durable outcome:
+{"seq":1,"epoch":1788440163,"task":"backpass-target-clean-slate-r1","wake":"","verdict":"captain","summary":"Clean-slate PR ready: https://github.com/kunchenguid/backpass/pull/108","silent":false,"statusEndpoint":71,"statusIdent":"strong:16777235:629666861:1788440163.614411520"}
+
+Persisted URL checks:
+real_url_rows=1
+invented_owner_rows=0
