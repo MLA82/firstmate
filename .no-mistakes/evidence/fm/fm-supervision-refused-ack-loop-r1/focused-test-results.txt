@@ -1,0 +1,4 @@
+Focused behavioral test:
+ok - fm_branch_report refuses a task the wake did not name and a task with no live record
+ok - wake drain: an acknowledgement that consumes nothing says so and names the exact command for the current wake
+ok - wake drain: a branch acknowledgement that consumes nothing names the exact command for its granted wake

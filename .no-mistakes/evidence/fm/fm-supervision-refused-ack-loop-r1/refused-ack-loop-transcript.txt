@@ -1,0 +1,11 @@
+CURRENT WAKE PRESENTATION
+1788425517	2	check	current	check: current wake
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9
+
+ACCIDENTALLY RE-RUNNING THE PREVIOUS WAKE ACK
+wake drain: nothing was acknowledged through 1 (none of your presented wake rows is at or below it); the current wake is row 2: run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9 after handling it
+
+FOLLOWING THE PRINTED CURRENT-WAKE REMEDY
+$ bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9
+queue rows remaining: 0
+recovery marker: acked:handling:91903.1788425517.IOpOS9
