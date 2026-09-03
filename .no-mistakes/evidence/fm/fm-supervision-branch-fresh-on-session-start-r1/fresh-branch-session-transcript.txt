@@ -1,0 +1,5 @@
+{"event":"mirror-reanchor","newConversationMessages":["[captain] standing order: never merge task-7","[captain] and hold task-9 too"],"afterIncremental":["[captain] standing order: never merge task-7","[captain] and hold task-9 too","[captain] task-9 may merge when green"]}
+ok - the dialog mirror re-anchors for each session's new branch conversation and stays incremental within it
+{"event":"same-process-session-start","initial":"created-75195-1.jsonl","sameSession":"created-75195-1.jsonl","sameSessionReopened":true,"replacement":"created-75195-2.jsonl","replacementReopened":false,"pointer":"created-75195-2.jsonl"}
+{"event":"process-restart","prior":"created-75195-2.jsonl","restarted":"created-76880-1.jsonl","restartedOpened":false,"pointer":"created-76880-1.jsonl","priorRetained":true}
+ok - every main session start begins a new branch conversation while one session keeps its own
