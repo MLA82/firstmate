@@ -1,0 +1,63 @@
+
+$ # Setup: mate home /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate is a secondmate of parent home /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent (local route); child task 'child' lives in a real tmux pane; both watchers are live
+
+$ # Step 1: the child appends its terminal line from inside its own real tmux pane
+
+$ tmux send-keys -t fmlive26898:fm-child "echo 'done: PR https://github.com/kunchenguid/firstmate/pull/9999 checks green' >> $M/state/child.status" Enter
+
+$ cat $M/state/child.status
+working: implementing the feature
+done: PR https://github.com/kunchenguid/firstmate/pull/9999 checks green
+
+$ cat $P/state/mate.status   (the parent channel)
+working: delegated scope
+done [key=child-outcome-child-done-05b032a1]: child child done: PR https://github.com/kunchenguid/firstmate/pull/9999 checks green pr=https://github.com/kunchenguid/firstmate/pull/9999 mode=no-mistakes yolo=off
+
+$ mate watcher wakes so far
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate/state/child.status
+
+$ parent watcher wakes so far
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+
+$ # Step 2: the mate registers the PR with fm-pr-check; the ready line with the canonical URL reaches the parent from the script itself
+
+$ FM_HOME=$M FM_STATE_OVERRIDE=$M/state bin/fm-pr-check.sh child https://github.com/kunchenguid/firstmate/pull/9999
+armed: state/child.check.sh
+
+$ cat $P/state/mate.status
+working: delegated scope
+done [key=child-outcome-child-done-05b032a1]: child child done: PR https://github.com/kunchenguid/firstmate/pull/9999 checks green pr=https://github.com/kunchenguid/firstmate/pull/9999 mode=no-mistakes yolo=off
+done [key=child-pr-child]: child child PR ready: https://github.com/kunchenguid/firstmate/pull/9999 mode=no-mistakes yolo=off
+
+$ parent watcher wakes so far (2 signals)
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+
+$ # Step 3: the mate holds a task for the captain; the hold reaches the parent from fm-captain-hold itself
+
+$ FM_HOME=$M bin/fm-captain-hold.sh hold child-call --title 'Pick the rollout window' --reason 'rollout window choice pending' --repo alpha
+child-call
+
+$ # Step 4: the captain's answer is recorded in the mate home; the close reaches the parent from fm-captain-hold itself
+
+$ FM_HOME=$M bin/fm-captain-hold.sh answer child-call --decision-file decision.txt   (decision: roll out on Monday)
+answered: child-call
+
+$ cat $P/state/mate.status   (final parent channel)
+working: delegated scope
+done [key=child-outcome-child-done-05b032a1]: child child done: PR https://github.com/kunchenguid/firstmate/pull/9999 checks green pr=https://github.com/kunchenguid/firstmate/pull/9999 mode=no-mistakes yolo=off
+done [key=child-pr-child]: child child PR ready: https://github.com/kunchenguid/firstmate/pull/9999 mode=no-mistakes yolo=off
+needs-decision [key=captain-hold-child-call-1]: captain hold child-call: rollout window choice pending
+resolved [key=captain-hold-child-call-1]: captain hold child-call: answered
+
+$ parent watcher wakes, one per delivered line (4 signals)
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent/state/mate.status
+
+$ mate watcher wakes
+signal: /Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate/state/child.status
+stale: fmlive26898:fm-child
+
+$ # Every line above beginning 'done [key=child-' or carrying 'captain-hold-' was written by a script, never by a model; each one woke the parent watcher.

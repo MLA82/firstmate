@@ -1,0 +1,10 @@
+window=fmlive26898:fm-mate
+endpoint_task_id=mate
+worktree=/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate
+project=/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate
+harness=codex
+kind=secondmate
+mode=secondmate
+yolo=off
+spawn_gen=live-1
+home=/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate

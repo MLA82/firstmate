@@ -1,0 +1,10 @@
+window=fmlive26898:fm-child
+endpoint_task_id=child
+worktree=/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate/projects/child
+project=/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/mate/projects/alpha
+harness=codex
+kind=ship
+mode=no-mistakes
+yolo=off
+spawn_gen=live-1
+pr=https://github.com/kunchenguid/firstmate/pull/9999

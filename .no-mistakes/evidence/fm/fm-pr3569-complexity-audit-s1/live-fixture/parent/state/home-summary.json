@@ -1,0 +1,42 @@
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "generated": "2026-09-03T03:23:22Z",
+  "generated_epoch": 1788405802,
+  "home": "/Users/kunchen/.no-mistakes/evidence/01M1JHTDWCXR9V406DBVQXBV3E/live-fixture/parent",
+  "valid": false,
+  "reason": "missing structured backlog",
+  "invalidity": {
+    "kind": "missing_backlog",
+    "ids": []
+  },
+  "state": "unknown",
+  "active_children": [],
+  "decisions_open": [],
+  "holds": [],
+  "queued": [],
+  "landed": [],
+  "endpoints": [
+    {
+      "id": "mate",
+      "state": "unknown",
+      "source": "none",
+      "endpoint": {
+        "target": "fmlive26898:fm-mate",
+        "exists": true,
+        "agent_alive": "dead",
+        "status": "dead",
+        "observed_at": "2026-09-03T03:23:22Z",
+        "freshness": "fresh"
+      }
+    }
+  ],
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 0,
+    "holds": 0,
+    "queued": 0,
+    "landed": 0,
+    "endpoints": 1
+  },
+  "omitted": []
+}

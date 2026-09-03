@@ -1,0 +1,11 @@
+schema=fm-terminal-outcome.v1
+fingerprint=05b032a152134e3d66557c45e02237a0
+task_id=child
+incarnation=live-1
+state=done
+outcome_key=child-outcome-child-done-05b032a1
+origin=direct
+phase=upstream
+pr=https://github.com/kunchenguid/firstmate/pull/9999
+created_epoch=1788405784
+notice_emitted=0
