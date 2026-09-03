@@ -1,0 +1,45 @@
+$ fm-brief.sh intent-demo project --mode no-mistakes
+scaffolded: /var/folders/0k/bf8mwt2n5qddzk24r20gfk0c0000gn/T//fm-intent-e2e.Wl5VRy/home/data/intent-demo/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+
+$ rendered # Task contract
+# Task
+## Captain's intent
+Make no-mistakes use my original request as intent.
+
+## Firstmate spec
+Implement subsection parsing and preserve backward compatibility.
+
+# Herdr lifecycle declaration - NOT ENABLED
+$ fm-spawn.sh intent-demo <project> --mode no-mistakes --yolo off (test bypass + fake tmux)
+spawn exit: 1 (expected: fake tmux unavailable)
+
+$ generated worker-visible authoritative intent overlay
+# Current no-mistakes intent contract
+This section supersedes every earlier brief instruction about constructing `--intent`, but not later clarifications actually supplied by the captain.
+Use the serialized captain intent below plus any later words the captain actually supplied as `--intent`; never include Firstmate specification or other mixed Task content.
+
+## Captain intent authorized for --intent
+Make no-mistakes use my original request as intent.
+
+Firstmate-authored constraints, acceptance criteria, implementation details, decisions, and tradeoffs are specification, not captain intent.
+
+$ fm-promote.sh promotion-demo --mode no-mistakes --yolo off
+promoted promotion-demo to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /var/folders/0k/bf8mwt2n5qddzk24r20gfk0c0000gn/T//fm-intent-e2e.Wl5VRy/home/data/promotion-demo/ship-instructions.md
+next: FM_HOME=/var/folders/0k/bf8mwt2n5qddzk24r20gfk0c0000gn/T//fm-intent-e2e.Wl5VRy/home bin/fm-send.sh fm-promotion-demo "$(cat /var/folders/0k/bf8mwt2n5qddzk24r20gfk0c0000gn/T//fm-intent-e2e.Wl5VRy/home/data/promotion-demo/ship-instructions.md)"
+
+$ promoted worker # Task contract (through Definition of done heading)
+# Task
+## Captain's intent
+Make no-mistakes use my original request as intent.
+
+## Firstmate spec
+1. **Verify isolation before anything else.** Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from. If either does not resolve to the worktree you were launched in, stop and escalate to firstmate.
+2. Inventory this worktree's scratch state with `git status` and `git log` before changing anything.
+3. Return to a clean default-branch base, then create your branch: `git checkout -b fm/promotion-demo`.
+4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.
+5. If you reproduced a bug, turn that reproduction into a regression test.
+6. These ship instructions supersede the scout delivery rules and report-based Definition of done. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule.
+7. Treat the scout-time Firstmate spec and any unmarked legacy `# Task` text as investigation context, not captain intent or ship-time instructions.
+
+# Definition of done
