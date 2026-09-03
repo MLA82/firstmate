@@ -1,11 +1,12 @@
-CURRENT WAKE PRESENTATION
-1788425517	2	check	current	check: current wake
-WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9
+$ fm-wake-drain.sh  # current wake presentation
+1788429787	2	check	second	check: second wake
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 89589.1788429787.s0J80J
 
-ACCIDENTALLY RE-RUNNING THE PREVIOUS WAKE ACK
-wake drain: nothing was acknowledged through 1 (none of your presented wake rows is at or below it); the current wake is row 2: run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9 after handling it
+$ bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 88625.1788429786.7IeeHG  # stale prior command
+wake drain: nothing was acknowledged through 1 (none of your presented wake rows is at or below it); the current wake is row 2: run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 89589.1788429787.s0J80J after handling it
 
-FOLLOWING THE PRINTED CURRENT-WAKE REMEDY
-$ bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 91903.1788425517.IOpOS9
-queue rows remaining: 0
-recovery marker: acked:handling:91903.1788425517.IOpOS9
+$ queue remains after stale acknowledgement:
+1788429787	2	check	second	check: second wake
+
+$ bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 89589.1788429787.s0J80J  # printed remedy
+queue state: empty (current wake acknowledged)
