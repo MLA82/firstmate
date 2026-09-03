@@ -1,0 +1,22 @@
+Remote second-mate parent-target sync - end-user CLI transcript
+
+Incident-shaped setup:
+  host Firstmate HEAD: 0dd7791eb07bedc10c71bea424e74ba7e495b361 (c1, behind)
+  remote home HEAD:    1157f3906361cfaea602fcbef147039a389583f5 (c2, ahead of host)
+  parent primary ref:  ab00fa2f844c7d2b93c9ee817466224ff8c21231 (c3, target)
+
+$ FM_HOME=<remote-home> FM_ROOT_OVERRIDE=<host-firstmate> bin/fm-remote-secondmate-control.sh sync sm <parent-primary-commit>
+synced: ab00fa2f844c7d2b93c9ee817466224ff8c21231
+
+Observed state after sync:
+  remote home HEAD:    ab00fa2f844c7d2b93c9ee817466224ff8c21231
+  remote home branch:  main
+  host Firstmate HEAD: 0dd7791eb07bedc10c71bea424e74ba7e495b361 (unchanged=yes)
+  matches parent:      yes
+  state/data/config/projects sentinels unchanged: yes
+
+Persisted sentinels:
+  066a72a6502c954813ecee6ea2352af046e3987eea8a1c2d23aa8e2d1b00dc49  projects/sentinel
+  5cb12762b9feedd2f11adb7d2a5210f14063de7947892c170a0806e2e63eb452  state/sentinel
+  e2a66e562baf2c7b1280d94ceea75205b12192f9fcb8ff2f96c5e7eeec72b1f8  config/sentinel
+  fa788d2a0e4035b354bceb6451eb16778353138e7327595d67e80b95fb982e29  data/sentinel
