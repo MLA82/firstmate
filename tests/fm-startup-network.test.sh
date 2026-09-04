@@ -119,7 +119,7 @@ run_stage() {  # <home> <root> <args...>
   PATH="$root/bin:$PATH" FM_FAKE_HARNESS_PID="${FM_FAKE_HARNESS_PID_OVERRIDE:-$$}" \
     FM_HOME="$home" FM_ROOT_OVERRIDE="$root" "$root/bin/fm-startup-network.sh" "$@"
 }
-# Exported so fm_run_dir_readonly's inner `unshare -rm bash -c` can resolve it
+# Exported so fm_run_dir_readonly's inner setpriv `bash -c` can resolve it
 # as a function rather than an external command.
 export -f run_stage
 
