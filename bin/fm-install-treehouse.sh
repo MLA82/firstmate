@@ -81,8 +81,13 @@ fi
 mkdir -p "$DESTINATION"
 install -m 0755 "$BIN" "$DESTINATION/treehouse"
 
-version_output=$("$DESTINATION/treehouse" --version 2>&1) || {
-  die "'$DESTINATION/treehouse --version' exited $? with output: ${version_output:-<none>}"
+# stderr is captured to its own file rather than merged with 2>&1: merging
+# would pollute a successful call's parsed stdout (version_output) with any
+# incidental stderr text (a deprecation notice, update check, etc.), which
+# tr -d '[:space:]' below would then splice directly onto the version string
+# with no separator, breaking the pin comparison even on a healthy install.
+version_output=$("$DESTINATION/treehouse" --version 2>"$TMP/treehouse-version.err") || {
+  die "'$DESTINATION/treehouse --version' exited $? with output: $(cat "$TMP/treehouse-version.err" 2>/dev/null)"
 }
 installed_version=$(printf '%s' "$version_output" | tr -d '[:space:]')
 # treehouse prints "v2.0.1" (leading v) on --version.
