@@ -81,12 +81,15 @@ fi
 mkdir -p "$DESTINATION"
 install -m 0755 "$BIN" "$DESTINATION/treehouse"
 
-installed_version=$("$DESTINATION/treehouse" --version 2>/dev/null | tr -d '[:space:]')
+version_output=$("$DESTINATION/treehouse" --version 2>&1) || {
+  die "'$DESTINATION/treehouse --version' exited $? with output: ${version_output:-<none>}"
+}
+installed_version=$(printf '%s' "$version_output" | tr -d '[:space:]')
 # treehouse prints "v2.0.1" (leading v) on --version.
 case "$installed_version" in
   "v${FM_TREEHOUSE_CI_VERSION}"|"${FM_TREEHOUSE_CI_VERSION}") ;;
   *)
-    die "installed treehouse version is '${installed_version:-<empty>}', expected exact pin v${FM_TREEHOUSE_CI_VERSION}"
+    die "installed treehouse version is '${installed_version:-<empty>}', expected exact pin v${FM_TREEHOUSE_CI_VERSION}. treehouse --version said: ${version_output:-<no output>}"
     ;;
 esac
 
