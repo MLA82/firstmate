@@ -521,6 +521,9 @@ run_session_start() {
       "$SESSION_START"
   fi
 }
+# Exported so fm_run_without_dac_override's dropped-capability `bash -c` can
+# resolve it as a function rather than an external command.
+export -f run_session_start
 
 run_pi_session_start() {  # <home> <root> <path> [fm-session-start args...]
   local home=$1 root=$2 path=$3
@@ -829,11 +832,9 @@ EOF
   make_fake_toolchain "$fakebin"
   make_fake_ps_claude "$fakebin"
   append_wake "$home/state" signal task-a "done: must remain queued" || fail "seed wake failed"
-  chmod 0500 "$home/state"
 
   status=0
-  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
-  chmod 0700 "$home/state"
+  out=$(fm_run_dir_readonly "$home/state" run_session_start "$home" "$root" "$fakebin:$BASE_PATH") || status=$?
 
   expect_code 0 "$status" "fm-session-start.sh must exit 0 when lock publication fails"
   assert_contains "$out" "cannot write session lock" "lock publication failure was not surfaced"
