@@ -7,12 +7,13 @@
 #
 # It provides the boilerplate every test file used to re-roll: ok/not-ok
 # reporters, a self-cleaning temp root, fakebin/PATH-shim helpers, deterministic
-# git identity and fixture builders, state/<id>.meta writers, and the common
-# string/exit-code/file assertions. Shared fake-toolchain and spawn-world
-# builders live in tests/fixtures.sh; wake-queue mocks in wake-helpers.sh;
-# secondmate-lifecycle mocks in secondmate-helpers.sh. Suite-specific fakes
-# that encode a single test's terminal or lifecycle assumptions still belong
-# with the tests that own them.
+# git identity and fixture builders, state/<id>.meta writers, root-safe
+# unwritable/unreadable-path simulation (fm_run_dir_readonly and friends), and
+# the common string/exit-code/file assertions. Shared fake-toolchain and
+# spawn-world builders live in tests/fixtures.sh; wake-queue mocks in
+# wake-helpers.sh; secondmate-lifecycle mocks in secondmate-helpers.sh.
+# Suite-specific fakes that encode a single test's terminal or lifecycle
+# assumptions still belong with the tests that own them.
 #
 # ROOT is exported as the firstmate repo root (this file lives in tests/), so a
 # sourcing test can use "$ROOT/bin/..." without recomputing it.
