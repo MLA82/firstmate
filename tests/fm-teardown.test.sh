@@ -3472,6 +3472,51 @@ test_claude_hook_removed_when_worktree_not_in_use() {
   pass "Claude hook is removed when treehouse does NOT report the worktree as in-use"
 }
 
+test_claude_hook_left_when_treehouse_status_is_inconclusive() {
+  local case_dir rc
+  case_dir=$(make_case hook-cleanup-inconclusive)
+  write_meta "$case_dir" local-only ship
+  wt_commit "$case_dir" "fix the thing"
+  add_fork_with_pushed_branch "$case_dir"
+  add_claude_hook "$case_dir"
+
+  # Override the treehouse mock so a LATER `treehouse status` call errors:
+  # the worktree= pool-membership guard (Fix 0, checked first) must still see
+  # a normal pool listing so this test reaches the hook-cleanup code path at
+  # all, but the second call - worktree_is_in_use, made from
+  # remove_claude_hook_file - errors, making the in-use state genuinely
+  # unknown rather than "not in use". Removing the hook on an inconclusive
+  # check would be the same mistake this fix exists to close.
+  cat > "$case_dir/fakebin/treehouse" <<SH
+#!/usr/bin/env bash
+count_file="$case_dir/.fm-test-treehouse-status-calls"
+if [ "\${1:-}" = status ]; then
+  n=\$(( \$(cat "\$count_file" 2>/dev/null || echo 0) + 1 ))
+  printf '%s' "\$n" > "\$count_file"
+  if [ "\$n" -eq 1 ]; then
+    wt=\$(cd ../wt 2>/dev/null && pwd -P)
+    [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
+    exit 0
+  fi
+  echo "treehouse: internal error" >&2
+  exit 1
+fi
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "hook-cleanup-inconclusive: teardown should succeed"
+  # The hook should be LEFT ALONE because an erroring `treehouse status` makes
+  # the in-use state unknown, and unknown must fail closed toward preserving it.
+  assert_hook_present "$case_dir"
+  pass "Claude hook is left alone when treehouse status itself errors (inconclusive, not not-in-use)"
+}
+
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
@@ -3551,3 +3596,4 @@ test_claude_hook_left_when_referenced_state_dir_is_wrong
 test_claude_hook_left_when_no_meta_in_referenced_state
 test_claude_hook_left_when_worktree_is_in_use
 test_claude_hook_removed_when_worktree_not_in_use
+test_claude_hook_left_when_treehouse_status_is_inconclusive

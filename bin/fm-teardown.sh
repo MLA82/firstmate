@@ -135,7 +135,10 @@
 #     honest; worktree_is_treehouse_managed no longer trusts it. The check
 #     refuses loudly (REFUSED, no process touched) whenever the recorded path
 #     is not among `treehouse status`'s own pool members, which is unaffected
-#     by whether the rest of the metadata otherwise looks correct.
+#     by whether the rest of the metadata otherwise looks correct. Skipped for
+#     backend=orca: Orca's worktrees are never treehouse pool members by
+#     design, so this check would always refuse them; Orca is proved instead
+#     by require_orca_worktree_path_match_if_present, over its own registry.
 #   Fix 1 - conclude the task's own no-mistakes run. A ship task's worktree can
 #     be torn down while its no-mistakes pipeline run is still PARKED at a gate
 #     (awaiting_approval/fix_review/any awaiting_agent field), with no worker
@@ -1842,10 +1845,15 @@ worktree_is_treehouse_managed() {  # <dir> <cd_dir>
 # worktree_is_in_use <dir> <cd_dir>: true when the worktree is listed as
 # in-use in `treehouse status` output, meaning a live agent still owns it.
 # Used to guard Claude hook file removal so an active worktree's hook is never
-# touched by mistake.
+# touched by mistake. The caller treats a "true" result as "leave the hook
+# alone", so this must fail closed toward that same outcome: an unresolvable
+# real path or a `treehouse status` error makes the in-use state unknown, not
+# false, and unknown must not be treated as license to remove a hook that
+# might still belong to a live agent.
 worktree_is_in_use() {  # <dir> <cd_dir>
-  local dir=$1 cd_dir=$2 real_dir
-  real_dir=$(cd "$dir" 2>/dev/null && pwd -P) || return 1
+  local dir=$1 cd_dir=$2 real_dir status_out
+  real_dir=$(cd "$dir" 2>/dev/null && pwd -P) || return 0
+  status_out=$( (cd "$cd_dir" && treehouse status) 2>/dev/null) || return 0
   local candidate expanded
   while IFS= read -r candidate; do
     [ -n "$candidate" ] || continue
@@ -1854,7 +1862,7 @@ worktree_is_in_use() {  # <dir> <cd_dir>
       *) expanded=$candidate ;;
     esac
     [ "$expanded" = "$real_dir" ] && return 0
-  done < <(printf '%s\n' "$( (cd "$cd_dir" && treehouse status) 2>/dev/null )" | awk '$1 ~ /^[0-9]+$/ && $2 == "in-use" {print $3}')
+  done < <(printf '%s\n' "$status_out" | awk '$1 ~ /^[0-9]+$/ && $2 == "in-use" {print $3}')
   return 1
 }
 
@@ -2897,9 +2905,13 @@ fi
 # leaked process can own live work in this exact worktree. Not for
 # kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
 # dedicated process-event and firstmate-home removal machinery further below,
-# not by task-worktree cleanup.
+# not by task-worktree cleanup. Fix 0's treehouse-membership check is skipped
+# for backend=orca: Orca creates and owns its own worktrees outside the
+# treehouse pool (docs/architecture.md), so they never appear in `treehouse
+# status` and would always be wrongly refused here; require_orca_worktree_path_match_if_present
+# below is Orca's own equivalent proof, over its own worktree registry.
 if [ "$KIND" != secondmate ]; then
-  if [ -d "$WT" ] && ! worktree_is_treehouse_managed "$WT" "$PROJ"; then
+  if [ "$BACKEND" != orca ] && [ -d "$WT" ] && ! worktree_is_treehouse_managed "$WT" "$PROJ"; then
     echo "REFUSED: worktree $WT recorded for task $ID is not a treehouse-managed pool worktree." >&2
     echo "Refusing before touching a single process: state/$ID.meta's worktree= is likely stale or wrong. Verify it against \`treehouse status\` before retrying." >&2
     exit 1
