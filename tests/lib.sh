@@ -237,6 +237,115 @@ SH
   chmod +x "$fakebin/$tool"
 }
 
+# --- unwritable/unreadable-path simulation -----------------------------------
+#
+# chmod alone (the obvious way to simulate "this path cannot be written or
+# read") only blocks a non-root caller: a root process holding
+# CAP_DAC_OVERRIDE - the default for a container's root user, and how CI
+# a CI runner running this suite as root does - walks
+# straight past permission bits and the simulated failure never happens, so
+# the behavior it was meant to exercise silently goes untested.
+#
+# A read-only bind mount (this suite's first attempt at a fix) is enforced by
+# the kernel regardless of DAC checks, but building one needs a mount
+# namespace with CAP_SYS_ADMIN inside it, normally obtained via
+# `unshare -rm` (a fresh user+mount namespace maps the caller to root inside
+# it, which grants CAP_SYS_ADMIN there even when the real process lacks it).
+# That in turn needs the kernel to allow creating unprivileged user
+# namespaces at all, which some hosts disable - and it silently disabled
+# itself right where it was needed most: CI's self-hosted runner refuses
+# `unshare -rm` too, so every caller fell back to running fully unprotected
+# and the assertions it was meant to gate on started failing outright instead
+# of catching a real regression.
+#
+# Dropping CAP_DAC_OVERRIDE itself needs no namespace: CAP_SETPCAP (also
+# ordinary for a container's root user) lets setpriv shrink the capability
+# bounding set for one exec'd command, so <command...> ends up subject to
+# plain file-mode checks like anyone else, while the calling shell (and
+# every path <command...> is not meant to touch) keeps root's normal access -
+# no uid change, so no separate traversal/ownership setup for the rest of the
+# fixture tree. fm_run_without_dac_override is the primitive; the two
+# wrappers below add the chmod and, for the directory form, an empirical
+# proof the drop actually holds before trusting it with the real command,
+# because assuming a namespace or capability trick works is exactly the
+# mistake this whole rewrite exists to correct.
+
+# fm_run_without_dac_override <command...>: run <command...> normally when
+# not root (plain DAC checks already apply). As root, run it with
+# CAP_DAC_OVERRIDE removed from the capability bounding set, so any file mode
+# bits <command...> encounters (including ones it sets up itself, like a fake
+# tool chmod'ing a path mid-run) are enforced against it instead of bypassed.
+# <command...> is looked up as a shell function first (via the exported
+# BASH_FUNC_ mechanism), then as an external command, exactly as bash
+# ordinarily resolves a simple command.
+fm_run_without_dac_override() {
+  if [ "$(id -u)" != 0 ]; then
+    "$@"
+    return $?
+  fi
+  # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
+  setpriv --bounding-set=-dac_override -- bash -c '"$@"' _ "$@"
+}
+
+# _fm_dac_override_drop_blocks_write <dir>: true only if
+# fm_run_without_dac_override actually stops a throwaway write inside <dir>
+# (which the caller must already have chmod a-w'd), proven empirically
+# rather than assumed.
+_fm_dac_override_drop_blocks_write() {
+  local dir=$1 probe rc
+  probe="$dir/.fm-run-dir-readonly-probe.$$"
+  command -v setpriv >/dev/null 2>&1 || return 1
+  # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
+  fm_run_without_dac_override bash -c '>"$1"' _ "$probe" 2>/dev/null
+  rc=$?
+  rm -f "$probe" 2>/dev/null
+  [ "$rc" -ne 0 ]
+}
+
+# fm_dir_block_writes <dir>: chmod <dir> unwritable and, as root, prove the
+# block actually holds before returning success. Leaves <dir> writable again
+# and refuses (nonzero, no diagnostic needed - the caller decides how loud to
+# be) when running as root and the block cannot be proven.
+#
+# Split out from fm_run_dir_readonly for the one shape that wrapper cannot
+# cover: a caller whose protected write happens after the command that
+# triggers it has already returned, e.g. fm-startup-network.sh's `start`
+# forks a detached worker and returns immediately, so the block has to
+# outlive that call and be lifted explicitly later with fm_dir_unblock_writes
+# once the worker has actually run - not the instant the launching command
+# exits.
+fm_dir_block_writes() {
+  local dir=$1
+  chmod a-w "$dir"
+  if [ "$(id -u)" = 0 ] && ! _fm_dac_override_drop_blocks_write "$dir"; then
+    chmod u+w "$dir"
+    return 97
+  fi
+  return 0
+}
+
+fm_dir_unblock_writes() {
+  chmod u+w "$1"
+}
+
+# fm_run_dir_readonly <dir> <command...>: fm_dir_block_writes <dir>, run
+# <command...>, then fm_dir_unblock_writes <dir>. Use this when <command...>
+# itself performs (or fails to perform) the protected write before returning;
+# use fm_dir_block_writes/fm_dir_unblock_writes directly when the write
+# happens later, off a background worker <command...> only launches.
+fm_run_dir_readonly() {
+  local dir=$1
+  shift
+  if ! fm_dir_block_writes "$dir"; then
+    printf 'fm_run_dir_readonly: cannot verify a write-block for root on %s; refusing to run %s unprotected\n' "$dir" "$1" >&2
+    return 97
+  fi
+  fm_run_without_dac_override "$@"
+  local rc=$?
+  fm_dir_unblock_writes "$dir"
+  return $rc
+}
+
 # --- deterministic git identity and fixtures --------------------------------
 
 # fm_git_identity [name] [email]: export a fixed author/committer identity so
