@@ -139,6 +139,13 @@ FM_TEST_TMPDIR=$(fm_test_tmpdir) || return 1
 FM_TEST_CLEANUP_DIRS=()
 FM_TEST_CLEANUP_REGISTRY=$(mktemp "$FM_TEST_TMPDIR/.fm-test-cleanup.$$.XXXXXX") || return 1
 
+# Directories currently write-blocked via fm_dir_block_writes, so
+# fm_test_cleanup can unblock them if a signal cuts a test off before its
+# matching fm_dir_unblock_writes runs. Lives in-process (not the registry
+# file $$-keyed subshells need): every caller of fm_dir_block_writes runs
+# directly in the test process, never in a captured subshell.
+FM_TEST_BLOCKED_DIRS=()
+
 fm_test_pid_identity() {
   local pid=$1
   FM_STATE_OVERRIDE="$FM_TEST_TMPDIR" bash -c \
@@ -255,6 +262,14 @@ fm_test_cleanup() {
   local d
   fm_test_reap_watchers
   fm_test_reap_procevent_homes
+  # Restore write access to any directory a test left blocked via
+  # fm_dir_block_writes before removing it below: a signal landing between
+  # fm_dir_block_writes and its matching fm_dir_unblock_writes would otherwise
+  # reach this trap while the directory is still unwritable, and a non-root
+  # `rm -rf` cannot unlink entries from a write-blocked directory.
+  for d in "${FM_TEST_BLOCKED_DIRS[@]:-}"; do
+    [ -n "$d" ] && chmod u+w "$d" 2>/dev/null
+  done
   for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"; do
     [ -n "$d" ] && fm_test_remove_tree "$d"
   done
@@ -776,6 +791,7 @@ fm_dir_block_writes() {
     chmod u+w "$dir"
     return 97
   fi
+  FM_TEST_BLOCKED_DIRS+=("$dir")
   return 0
 }
 
