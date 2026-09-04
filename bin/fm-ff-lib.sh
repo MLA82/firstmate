@@ -246,6 +246,12 @@ remote_sync_failure_reason() { # <exit-status> <output>
   first_line "$2"
 }
 
+# dirty_status <dir> [ignore_seed_marker]:
+#   Returns the first line of `git status --porcelain` output (the original
+#   behavior).  Used by fm-config-push.sh for a simple "is there any change?"
+#   check.  For the fast-forward refusal logic in ff_target, see the inline
+#   tracked-vs-untracked split below, which matches bin/fm-fleet-sync.sh's
+#   pattern (grep -qv '^??').
 dirty_status() {
   local dir=$1 ignore_seed_marker=${2:-no}
   if [ "$ignore_seed_marker" = yes ]; then
@@ -342,10 +348,37 @@ ff_target() {
     return 0
   fi
 
-  if [ -n "$(dirty_status "$dir" "$ignore_seed_marker")" ]; then
+  # dirty: tracked-file changes only (modified/staged/deleted/conflicted) -
+  # blocks the fast-forward unchanged.
+  # untracked: untracked-only paths (e.g. an ignored tool cache). These can
+  # never be silently destroyed by a fast-forward - git itself refuses one that
+  # would overwrite an untracked file - so untracked-only never blocks by
+  # itself; see the header comment.  The split here matches the pattern in
+  # bin/fm-fleet-sync.sh.
+  _status_out=$(git -C "$dir" status --porcelain 2>/dev/null) || _status_out=""
+  _dirty=no
+  _untracked=no
+  if [ -n "$_status_out" ]; then
+    if [ "$ignore_seed_marker" = yes ]; then
+      # Exclude the seed marker plus untracked-only lines.
+      if printf '%s\n' "$_status_out" | awk -v marker="?? $SUB_HOME_MARKER" '$0 != marker' | grep -qv '^??'; then
+        _dirty=yes
+      else
+        _untracked=yes
+      fi
+    else
+      if printf '%s\n' "$_status_out" | grep -qv '^??'; then
+        _dirty=yes
+      else
+        _untracked=yes
+      fi
+    fi
+  fi
+  if [ "$_dirty" = yes ]; then
     echo "$label: skipped: dirty working tree"
     return 0
   fi
+  _FF_UNTRACKED="$_untracked"
 
   local_rev=$(git -C "$dir" rev-parse HEAD 2>/dev/null) || {
     echo "$label: skipped: cannot read HEAD"

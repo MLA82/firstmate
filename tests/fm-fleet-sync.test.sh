@@ -17,6 +17,11 @@
 # firstmate home, the firstmate checkout itself - so it must be skipped by name
 # with the enclosing repo left untouched, in both the whole-fleet and
 # single-project forms, while a symlinked clone dir still syncs.
+# It also pins the tracked-vs-untracked dirty split: a clone with only untracked
+# files (e.g. an ignored tool cache) still fast-forwards and reports its presence
+# instead of going STUCK, the same relaxation applies to the detached-HEAD
+# recovery checkout, and a fast-forward or a recovery checkout genuinely blocked
+# by a colliding untracked file is still reported cleanly rather than swallowed.
 #
 # It also pins the orphaned .git/packed-refs.lock recovery in the fetch step
 # (fetch_with_packed_refs_lock_guard, backed by bin/fm-lock-lib.sh's shared
@@ -314,6 +319,102 @@ test_dirty_is_stuck_untouched() {
   [ "$(head_sha "$clone")" = "$before" ] || fail "dirty clone HEAD was moved"
   grep -q "uncommitted edit" "$clone/file.txt" || fail "dirty working-tree change was discarded"
   pass "dirty working tree is reported STUCK and left untouched"
+}
+
+test_untracked_only_advances_not_stuck() {
+  local home clone out
+  home=$(new_home)
+  clone=$(build_pair "$home" xi)
+  advance_origin "$home" xi C1
+  printf 'cache\n' > "$clone/.tool-cache"
+
+  out=$(run_sync "$home" "$clone")
+
+  assert_contains "$out" "xi: synced" "untracked-only clone still fast-forwards"
+  assert_contains "$out" "untracked files present" "sync message notes the untracked files"
+  assert_not_contains "$out" "STUCK" "untracked-only clone must not be reported STUCK"
+  [ "$(head_sha "$clone")" = "$(git -C "$clone" rev-parse origin/main)" ] \
+    || fail "untracked-only clone was not fast-forwarded"
+  [ -f "$clone/.tool-cache" ] || fail "untracked file was discarded by the sync"
+  pass "a clone with only untracked files still fast-forwards, notes the untracked files, and is not STUCK"
+}
+
+test_detached_untracked_only_recovers() {
+  local home clone out before after
+  home=$(new_home)
+  clone=$(build_pair "$home" pi)
+  advance_origin "$home" pi C1
+  before=$(head_sha "$clone")
+  git -C "$clone" checkout --detach --quiet
+  printf 'cache\n' > "$clone/.tool-cache"
+
+  out=$(run_sync "$home" "$clone")
+
+  assert_contains "$out" "pi: recovered: re-attached main, synced" \
+    "detached HEAD with only untracked files still recovers"
+  assert_contains "$out" "untracked files present" "recovery message notes the untracked files"
+  assert_not_contains "$out" "STUCK" "untracked-only detached HEAD must not be reported STUCK"
+  [ "$(git -C "$clone" symbolic-ref --short HEAD 2>/dev/null)" = "main" ] \
+    || fail "expected re-attach to main, HEAD still detached"
+  after=$(head_sha "$clone")
+  [ "$after" != "$before" ] || fail "expected fast-forward after re-attach"
+  [ -f "$clone/.tool-cache" ] || fail "untracked file was discarded during recovery"
+  pass "detached HEAD with only untracked files is re-attached and fast-forwarded, not left STUCK"
+}
+
+test_detached_checkout_collision_reported_cleanly() {
+  local home clone work out
+  home=$(new_home)
+  clone=$(build_pair "$home" upsilon)
+  work="$home/work-upsilon"
+  # Local main carries a file the detached commit does not, and the worktree
+  # holds an untracked file at that same path. Untracked-only no longer
+  # withholds recovery, so the re-attach checkout is the thing that collides -
+  # git refuses it, and that real reason must surface as a skip instead of
+  # disappearing into STUCK.
+  commit_file "$work" new.txt "from-origin" "add new.txt"
+  git -C "$work" push -q origin main
+  git -C "$clone" pull -q --ff-only
+  advance_origin "$home" upsilon C2
+  git -C "$clone" checkout --detach --quiet HEAD~1
+  printf 'local-untracked-version\n' > "$clone/new.txt"
+
+  out=$(run_sync "$home" "$clone")
+
+  assert_contains "$out" "upsilon: skipped: checkout failed" \
+    "a colliding re-attach checkout is reported as a clean skip, not swallowed"
+  assert_contains "$out" "untracked working tree files would be overwritten" \
+    "the skip carries git's own reason for refusing the checkout"
+  assert_not_contains "$out" "STUCK" "a failed recovery checkout is a skip, not STUCK"
+  [ -z "$(git -C "$clone" symbolic-ref --short HEAD 2>/dev/null)" ] \
+    || fail "clone must be left detached when the recovery checkout fails"
+  grep -q "local-untracked-version" "$clone/new.txt" \
+    || fail "colliding untracked file content was overwritten"
+  pass "a recovery checkout blocked by a colliding untracked file is reported cleanly, not swallowed"
+}
+
+test_untracked_collision_blocks_ff_cleanly() {
+  local home clone work out
+  home=$(new_home)
+  clone=$(build_pair "$home" omicron)
+  work="$home/work-omicron"
+  # Origin adds a new tracked file; the clone independently has an untracked
+  # file at that same path, so git's own ff-only protection must refuse the
+  # merge rather than silently overwrite it.
+  commit_file "$work" new.txt "from-origin" "add new.txt"
+  git -C "$work" push -q origin main
+  printf 'local-untracked-version\n' > "$clone/new.txt"
+
+  out=$(run_sync "$home" "$clone")
+
+  assert_contains "$out" "omicron: skipped: fast-forward failed" \
+    "untracked collision is reported as a clean skip, not swallowed"
+  assert_not_contains "$out" "STUCK" "untracked collision is a skip, not STUCK"
+  grep -q "local-untracked-version" "$clone/new.txt" \
+    || fail "colliding untracked file content was overwritten"
+  [ "$(head_sha "$clone")" != "$(git -C "$clone" rev-parse origin/main)" ] \
+    || fail "clone should not have fast-forwarded through the collision"
+  pass "a fast-forward blocked by a colliding untracked file is reported cleanly, not swallowed"
 }
 
 test_non_default_branch_is_stuck_untouched() {
@@ -698,6 +799,10 @@ test_detached_clean_ancestor_recovers
 test_detached_unique_commit_is_stuck_untouched
 test_detached_clean_ancestor_with_diverged_local_default_is_stuck_untouched
 test_dirty_is_stuck_untouched
+test_untracked_only_advances_not_stuck
+test_detached_untracked_only_recovers
+test_detached_checkout_collision_reported_cleanly
+test_untracked_collision_blocks_ff_cleanly
 test_non_default_branch_is_stuck_untouched
 test_diverged_is_stuck_untouched
 test_on_default_clean_behind_fast_forwards
