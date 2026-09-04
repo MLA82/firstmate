@@ -834,6 +834,7 @@ test_scout_teardown_removes_orca_worktree_via_helper() {
     "backend=orca" "orca_worktree_id=wt-teardown" \
     "decisions_reviewed=1" "decision_keys="
   orca_case teardown
+  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-teardown","path":"%s"}}}\n' "$wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -871,6 +872,7 @@ test_scout_teardown_refuses_orca_id_path_mismatch() {
     "backend=orca" "orca_worktree_id=wt-scout-mismatch" \
     "decisions_reviewed=1" "decision_keys="
   orca_case scout-mismatch
+  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-scout-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1031,6 +1033,7 @@ test_ship_teardown_removes_orca_worktree_when_id_path_matches() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-match"
   orca_case ship-match
+  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-ship-match","path":"%s"}}}\n' "$wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1066,6 +1069,7 @@ test_ship_teardown_refuses_orca_unresolvable_worktree_id() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-unresolved"
   orca_case ship-unresolved
+  fm_fake_treehouse_pool "$FB" "$wt"
   printf '1\n' > "$RESP/1.exit"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1105,6 +1109,7 @@ test_ship_teardown_refuses_orca_id_path_mismatch() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-mismatch"
   orca_case ship-mismatch
+  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-ship-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1143,6 +1148,7 @@ test_teardown_refuses_orca_missing_worktree_id() {
     "harness=claude" "kind=scout" "mode=no-mistakes" "yolo=off" "backend=orca" \
     "decisions_reviewed=1" "decision_keys="
   orca_case missing-id
+  fm_fake_treehouse_pool "$FB" "$wt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1175,6 +1181,7 @@ test_teardown_refuses_orca_worktree_without_terminal_handle() {
     "backend=orca" "orca_worktree_id=wt-no-terminal" \
     "decisions_reviewed=1" "decision_keys="
   orca_case no-terminal
+  fm_fake_treehouse_pool "$FB" "$wt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1216,6 +1223,7 @@ test_secondmate_force_teardown_removes_orca_child_via_orca() {
   printf '{"ok":true,"result":{}}\n' > "$RESP/3.out"
   printf '{"ok":true,"result":{}}\n' > "$RESP/4.out"
   add_tmux_fake "$FB"
+  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1259,6 +1267,7 @@ test_secondmate_force_teardown_refuses_orca_child_id_path_mismatch() {
   orca_case secondmate-child-mismatch
   printf '{"ok":true,"result":{"worktree":{"id":"wt-child-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   add_tmux_fake "$FB"
+  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1299,6 +1308,7 @@ test_secondmate_force_teardown_refuses_partial_orca_child() {
     "backend=orca" "orca_worktree_id=wt-partial-child"
   orca_case secondmate-partial-child-cleanup
   add_tmux_fake "$FB"
+  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
