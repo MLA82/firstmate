@@ -1,0 +1,21 @@
+=== 1. /updatefirstmate mechanical output ===
+firstmate: already current
+secondmate SSHHIP: already current
+reread-firstmate: no
+restart-secondmates: fm-SSHHIP
+nudge-secondmates: none
+
+=== 2. restart action consumed from update output ===
+invocation: fm-secondmate-restart.sh fm-SSHHIP
+restarted: SSHHIP (claude)
+summary: 1 of 1 restarted, 0 nudged, 0 unreached
+exit-status: 0
+
+=== 3. end-user-visible terminal chronology (persist before replace) ===
+1:Firstmate instruction waiting: list /private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/fm-secondmate-restart.DR6sOY/reviewer-e2e-24759/home/state/SSHHIP.inbox/*.msg and, in numeric order, read and act on each, then mv each handled file to /private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/fm-secondmate-restart.DR6sOY/reviewer-e2e-24759/home/state/SSHHIP.inbox/handled/.
+2:/exit
+
+=== 4. home safety checks ===
+HEAD-before: c7d7f8be1584b0c1b0bc5ce4ac972c396071c993
+HEAD-after:  c7d7f8be1584b0c1b0bc5ce4ac972c396071c993
+working-tree-status: 
