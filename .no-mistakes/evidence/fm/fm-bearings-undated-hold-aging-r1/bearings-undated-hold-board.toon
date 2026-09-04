@@ -1,0 +1,28 @@
+schema: fm-bearings.v1
+home: 01M1MTB1JR1CP7YD92FM1EV6ZP/.test-evidence-fixture
+generated: "2026-07-11T12:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[3]{id,key,verb,summary,owner}:
+  recent-call,recent-call,captain-hold,"Fresh choice on an old task: choose release route",(main)
+  contextual-call,contextual-call,captain-hold,"Contextual wording remains live: not urgent but choose retries now",(main)
+  due-parked,due-parked,captain-hold,"Scheduled parked choice now due: parked",(main)
+landed: []
+gates[4]{id,title,blocked_by,reason,owner}:
+  blocked-parked,Parked blocked idea,missing-blocker,parked,(main)
+  parked-hold,Parked maintenance idea,"-",not urgent,(main)
+  aged-call,Old unresolved choice,"-","held 40d: choose migration route",(main)
+  due-superseded,Superseded choice with arrived date,"-",SUPERSEDED,(main)
+reports: []
+recorded_prs: []
+omitted[8]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  "captain holds marked deferred, superseded, or aged: 4","--all-decisions"
+  live PR discovery + checks,"--include-prs"
