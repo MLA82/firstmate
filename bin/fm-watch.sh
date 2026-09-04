@@ -3039,6 +3039,7 @@ EOF
         wake "$reason"
       fi
       triage_log "absorbed benign $reason"
+      watch_delivery_publish "absorbed benign $reason" || true
     fi
   fi
 
@@ -3301,6 +3302,7 @@ EOF
       touch "$STATE/.last-heartbeat"
       echo $(( $(cat "$STATE/.heartbeat-streak" 2>/dev/null || echo 0) + 1 )) > "$STATE/.heartbeat-streak"
       triage_log "absorbed heartbeat (no captain-relevant change)"
+      watch_delivery_publish "absorbed heartbeat (no captain-relevant change)" || true
     fi
   fi
 

@@ -365,6 +365,12 @@ cycle_delivered_reason() {
 # Close a cycle whose reason line this arm could not read against that ledger.
 close_unobserved_cycle() {
   if cycle_delivered_reason; then
+    # A delivery record whose reason starts with "absorbed" means the watcher
+    # ended after only absorbing benign events - perfectly healthy, just no
+    # actionable wake was ever published. Treat it as a clean close.
+    case "$DELIVERED_REASON" in
+      "absorbed "*) printf '%s\n' "$DELIVERED_REASON"; return 0 ;;
+    esac
     printf '%s\n' "$DELIVERED_REASON"
     return 0
   fi
