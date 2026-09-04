@@ -32,7 +32,7 @@ TMP_ROOT=$(fm_test_tmproot fm-sessionstart-nudge)
 NUDGE="$ROOT/bin/fm-sessionstart-nudge.sh"
 RUN="$ROOT/bin/fm-sessionstart-run.sh"
 # Exported so run_hook still resolves it when fm_run_dir_readonly runs the
-# function as a child of a fresh `unshare -rm bash -c`, which only inherits
+# function as a child of setpriv's fresh `bash -c`, which only inherits
 # the environment, not this script's plain shell variables.
 export RUN
 # shellcheck source=/dev/null
@@ -199,7 +199,7 @@ run_hook() {  # <root> [args...]
   env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
     FM_GATE_REFUSE_BYPASS=0 FM_ROOT_OVERRIDE="$root" FM_HOME="$root" PATH="$RUN_PATH" "$RUN" "$@"
 }
-# Exported so fm_run_dir_readonly's inner `unshare -rm bash -c` can resolve it
+# Exported so fm_run_dir_readonly's inner setpriv `bash -c` can resolve it
 # as a function rather than an external command.
 export -f run_hook
 

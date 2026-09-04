@@ -37,6 +37,10 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
 
 SESSION_START="$ROOT/bin/fm-session-start.sh"
+# Exported so run_session_start still resolves it when fm_run_dir_readonly
+# runs the function as a child of setpriv's fresh `bash -c`, which only
+# inherits the environment, not this script's plain shell variables.
+export SESSION_START
 BASE_PATH=${FM_TEST_BASE_PATH:-/usr/bin:/bin:/usr/sbin:/sbin}
 TMP_ROOT=$(fm_test_tmproot fm-session-start-tests)
 
