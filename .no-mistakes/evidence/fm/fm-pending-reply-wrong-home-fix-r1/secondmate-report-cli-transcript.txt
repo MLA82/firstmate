@@ -1,0 +1,4 @@
+$ FM_HOME=<mate-home> bin/fm-secondmate-report.sh done 0123456789abcdef "audit clean"
+exit=0
+parent_channel=done [corr=0123456789abcdef]: audit clean (via-helper)
+mate_self_status=absent

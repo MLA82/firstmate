@@ -1,0 +1,14 @@
+=== Historical implementation (base commit) ===
+implementation=base
+final_phase=escalated
+recovery_sends=1
+pending_reply_missed=1
+parent_channel:
+  blocked [key=pending-reply-4a6e07efd7c46ded]: pending-reply-missed: task=mate pending-reply-id=4a6e07efd7c46ded request=status of healthy mate
+=== Fixed implementation (target commit) ===
+implementation=fixed
+final_phase=resolved
+recovery_sends=0
+pending_reply_missed=0
+parent_channel:
+  done [corr=0963009433cf87e8]: healthy mate answered
