@@ -934,13 +934,18 @@ fm_lock_acquire_wait() {  # <lockdir> [timeout-seconds]
   # succeeds or the timeout expires (default 30 s when no timeout is given).
   # A timeout of 0 means "try once and return immediately".
   # On timeout the function returns 1 so callers can detect and handle it.
+  # Many existing callers predate this bound and do not check the return
+  # value (this primitive previously could not fail); the diagnostic below
+  # ensures a timeout is at least visible in logs for those callers instead
+  # of silently letting them proceed as if the lock had been acquired.
   local lockdir=$1
   local timeout=${2:-30}
   local elapsed_hundredths=0
   while ! fm_lock_try_acquire "$lockdir"; do
     sleep 0.1
     elapsed_hundredths=$((elapsed_hundredths + 1))
-    if [ "$timeout" -gt 0 ] && [ "$elapsed_hundredths" -ge "$((timeout * 10))" ]; then
+    if [ "$elapsed_hundredths" -ge "$((timeout * 10))" ]; then
+      echo "fm_lock_acquire_wait: timed out after ${timeout}s waiting for $lockdir" >&2
       return 1
     fi
   done
