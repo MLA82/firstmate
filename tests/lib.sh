@@ -427,8 +427,8 @@ fm_touch_epoch() {
 #
 # chmod alone (the obvious way to simulate "this path cannot be written or
 # read") only blocks a non-root caller: a root process holding
-# CAP_DAC_OVERRIDE - the default for a container's root user, and how CI
-# a CI runner running this suite as root does - walks
+# CAP_DAC_OVERRIDE and/or CAP_DAC_READ_SEARCH - the default for a container's
+# root user, and how a CI runner running this suite as root does - walks
 # straight past permission bits and the simulated failure never happens, so
 # the behavior it was meant to exercise silently goes untested.
 #
@@ -457,10 +457,15 @@ fm_touch_epoch() {
 # mistake this whole rewrite exists to correct.
 
 # fm_run_without_dac_override <command...>: run <command...> normally when
-# not root (plain DAC checks already apply). As root, run it with
-# CAP_DAC_OVERRIDE removed from the capability bounding set, so any file mode
-# bits <command...> encounters (including ones it sets up itself, like a fake
-# tool chmod'ing a path mid-run) are enforced against it instead of bypassed.
+# not root (plain DAC checks already apply). As root, run it with both
+# CAP_DAC_OVERRIDE and CAP_DAC_READ_SEARCH removed from the capability
+# bounding set, so any file mode bits <command...> encounters (including ones
+# it sets up itself, like a fake tool chmod'ing a path mid-run) are enforced
+# against it instead of bypassed. Both capabilities independently let a
+# process bypass a file's read permission bits, so a read-denial fixture
+# (e.g. chmod 000) that dropped only CAP_DAC_OVERRIDE would still be read via
+# CAP_DAC_READ_SEARCH alone - dropping just one leaves the other capability
+# free to defeat the simulated failure.
 # <command...> is looked up as a shell function first (via the exported
 # BASH_FUNC_ mechanism), then as an external command, exactly as bash
 # ordinarily resolves a simple command.
@@ -470,7 +475,7 @@ fm_run_without_dac_override() {
     return $?
   fi
   # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
-  setpriv --bounding-set=-dac_override -- bash -c '"$@"' _ "$@"
+  setpriv --bounding-set=-dac_override,-dac_read_search -- bash -c '"$@"' _ "$@"
 }
 
 # _fm_dac_override_drop_blocks_write <dir>: true only if
