@@ -1,0 +1,52 @@
+DEFAULT BEARINGS BOARD
+======================
+schema: fm-bearings.v1
+home: fm-bearings.1GHt18/evidence-undated-holds
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[1]{id,key,verb,summary,owner}:
+  metadata-context,metadata-context,captain-hold,"Metadata-like context is not a deferral: not urgent, priority: decide P1 or P2",(main)
+landed: []
+gates[2]{id,title,blocked_by,reason,owner}:
+  parked-hold,Parked style call,"-",parked,(main)
+  aged-call,Aged genuine call,"-","held 40d: choose a sample route",(main)
+reports: []
+recorded_prs: []
+omitted[8]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  "captain holds marked deferred, superseded, or aged: 2","--all-decisions"
+  live PR discovery + checks,"--include-prs"
+
+EXPANDED WITH --all-decisions
+=============================
+schema: fm-bearings.v1
+home: fm-bearings.1GHt18/evidence-undated-holds
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[3]{id,key,verb,summary,owner}:
+  metadata-context,metadata-context,captain-hold,"Metadata-like context is not a deferral: not urgent, priority: decide P1 or P2",(main)
+  parked-hold,parked-hold,captain-hold,"Parked style call: parked",(main)
+  aged-call,aged-call,captain-hold,"Aged genuine call: choose a sample route",(main)
+landed: []
+gates: []
+reports: []
+recorded_prs: []
+omitted[7]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  superseded or prose-deferred queued items,"--all-queued"
+  live PR discovery + checks,"--include-prs"
