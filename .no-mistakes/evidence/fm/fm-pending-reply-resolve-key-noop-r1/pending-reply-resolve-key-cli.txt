@@ -1,0 +1,29 @@
+$ bin/fm-wake-drain.sh  # before operator close, after an unrelated bare resolution
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+mate [key=pending-reply-abcdef0123456789] blocked: pending-reply-missed: task=mate pending-reply-id=abcdef0123456789 request=ship it
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+
+$ bin/fm-send.sh mate --resolve-key pending-reply-abcdef0123456789 'ack, false escalation'
+exit=0
+
+$ cat state/mate.inbox/001.msg  # durable delivered answer
+schema=fm-task-inbox.v1
+at=2026-09-04T05:21:10Z
+--
+ack, false escalation
+$ tail -n 2 state/mate.status  # persisted ledger transition
+resolved [key=pending-reply-abcdef0123456789]: answered: unrelated writer attempted close
+resolved [key=pending-reply-abcdef0123456789]: pending-reply-resolved: task=mate pending-reply-id=abcdef0123456789 via=operator-resolve-key ack, false escalation
+
+$ bin/fm-wake-drain.sh  # after operator close
+UNREAD STATUS (new since last drain, not re-printed after this presentation):
+mate resolved [key=pending-reply-abcdef0123456789]: pending-reply-resolved: task=mate pending-reply-id=abcdef0123456789 via=operator-resolve-key ack, false escalation
+
+$ FM_CLASSIFY_RESERVED_KEY_PREFIXES="pending-reply- secret-" bin/fm-send.sh mate --resolve-key secret-abc "attempt ownerless close"
+exit=1
+[watcher-health warning omitted; unrelated to resolve-key verification]
+error: --resolve-key 'secret-abc' cannot take effect: this key is reserved for its owning library, and this send cannot produce a close note that library's fold will accept. Refusing rather than writing a silent no-op; nothing was sent.
+$ wc -c send.log  # transport must not run
+0
+$ cat state/mate.status  # decision remains open
+blocked [key=secret-abc]: secret-held: owner-only decision
