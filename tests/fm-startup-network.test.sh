@@ -271,7 +271,10 @@ EOF
     FM_SESSION_START_TIMEOUT=4 FM_FAKE_BOOTSTRAP_LOG="$1" FM_FAKE_BOOTSTRAP_OUT="unpublishable result" \
       run_stage "$2" "$3" start --locked 0 --harvest-pid "$4"
   ' _ "$log" "$home" "$root" "$claimant"
-  run_stage "$home" "$root" wait 30 >/dev/null || fail "the report-publication failure never settled"
+  if ! run_stage "$home" "$root" wait 30 >/dev/null; then
+    fm_dir_unblock_writes "$home/state/.startup-network.report"
+    fail "the report-publication failure never settled"
+  fi
   fm_dir_unblock_writes "$home/state/.startup-network.report"
   state=$(sed -n 's/^state=//p' "$home/state/.startup-network.status")
   [ "$state" = failed ] || fail "a report-publication failure was published as $state"
