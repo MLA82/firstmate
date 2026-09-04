@@ -1729,6 +1729,32 @@ test_persistent_index_lock_exhausts_retries_and_refuses_loudly() {
   pass "persistent index.lock exhausts retries and refuses without force-removing the lock"
 }
 
+# treehouse_return_is_index_lock_error: the English-text regex must match the
+# English git signature and must NOT match the German locale variant. The
+# LC_ALL=C prefix on treehouse return (teardown_treehouse_return) guarantees
+# the subprocess always emits English, but the unit test pins the regex
+# contract itself so it cannot silently lose the pattern.
+test_index_lock_error_match_and_no_match() {
+  # Inline the function under test so we can exercise it in isolation.
+  treehouse_return_is_index_lock_error() {
+    local text=$1
+    printf '%s\n' "$text" | grep -Eq "Unable to create ['\"].*index\\.lock['\"\]: File exists"
+  }
+
+  # English text - the exact format git emits under LC_ALL=C
+  treehouse_return_is_index_lock_error "fatal: Unable to create 'index.lock': File exists."
+  expect_code 0 $? "English: regex should match the English git error signature"
+
+  treehouse_return_is_index_lock_error "fatal: Unable to create '/tmp/repo/.git/index.lock': File exists."
+  expect_code 0 $? "English: regex should match the English git error with full path"
+
+  # German locale text - what git emits under de_DE.UTF-8 without LC_ALL=C
+  treehouse_return_is_index_lock_error "fatal: Konnte '/tmp/repo/.git/index.lock' nicht erstellen: Die Datei existiert bereits." && rc=0 || rc=$?
+  expect_code 1 "$rc" "German: regex must NOT match the German locale git error (LC_ALL=C is required)"
+
+  pass "treehouse_return_is_index_lock_error correctly matches English and rejects German text"
+}
+
 test_empty_retry_wait_uses_default_without_aborting() {
   local case_dir rc lock attempt_file
   case_dir=$(make_case empty-retry-wait)
@@ -3718,6 +3744,7 @@ test_non_linked_index_lock_path_is_checked_from_worktree
 test_index_lock_mtime_read_failure_refuses
 test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly
+test_index_lock_error_match_and_no_match
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error
 test_parked_own_run_is_aborted_before_teardown
