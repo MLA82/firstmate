@@ -77,12 +77,15 @@ mkdir -p "$DESTINATION"
 install -m 0755 "$TMP/$ASSET" "$DESTINATION/herdr"
 
 # Post-install version and protocol gates (no floating latest).
-installed_version=$("$DESTINATION/herdr" --version 2>/dev/null | awk '{print $2; exit}')
+version_output=$("$DESTINATION/herdr" --version 2>&1) || {
+  die "'$DESTINATION/herdr --version' exited $? with output: ${version_output:-<none>}"
+}
+installed_version=$(printf '%s' "$version_output" | awk '{print $2; exit}')
 [ "$installed_version" = "$FM_HERDR_CI_VERSION" ] \
   || die "installed herdr version is '${installed_version:-<empty>}', expected exact pin $FM_HERDR_CI_VERSION"
 
-status=$("$DESTINATION/herdr" status --json 2>/dev/null) \
-  || die "could not run 'herdr status --json' after install"
+status=$("$DESTINATION/herdr" status --json 2>&1) \
+  || die "could not run 'herdr status --json' after install: ${status:-<none>}"
 protocol=$(printf '%s' "$status" | jq -r '.client.protocol // empty' 2>/dev/null) \
   || die "jq is required to parse herdr status after install"
 case "$protocol" in

@@ -929,11 +929,22 @@ fm_lock_try_acquire() {
   return "$rc"
 }
 
-fm_lock_acquire_wait() {
+fm_lock_acquire_wait() {  # <lockdir> [timeout-seconds]
+  # Bounded wait: the loop retries fm_lock_try_acquire every 0.1s until it
+  # succeeds or the timeout expires (default 30 s when no timeout is given).
+  # A timeout of 0 means "try once and return immediately".
+  # On timeout the function returns 1 so callers can detect and handle it.
   local lockdir=$1
+  local timeout=${2:-30}
+  local elapsed_hundredths=0
   while ! fm_lock_try_acquire "$lockdir"; do
     sleep 0.1
+    elapsed_hundredths=$((elapsed_hundredths + 1))
+    if [ "$timeout" -gt 0 ] && [ "$elapsed_hundredths" -ge "$((timeout * 10))" ]; then
+      return 1
+    fi
   done
+  return 0
 }
 
 # Acquire in the timed helper process, then transfer the lock record to the
