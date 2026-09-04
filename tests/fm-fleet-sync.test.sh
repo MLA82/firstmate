@@ -90,10 +90,14 @@ advance_origin() {
 head_sha() { git -C "$1" rev-parse HEAD; }
 
 # run_sync <home> [args...]: run fleet-sync against an isolated home, stdout only.
+# LC_ALL=C so a relayed git error (e.g. "untracked working tree files would be
+# overwritten") is asserted in its stable English form regardless of the host
+# shell's locale - fm-fleet-sync.sh's own behavior is not locale-sensitive,
+# only the exact text of a message it relays from git is.
 run_sync() {
   local home=$1
   shift
-  FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-fleet-sync.sh" "$@" 2>/dev/null
+  LC_ALL=C FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-fleet-sync.sh" "$@" 2>/dev/null
 }
 
 # build_enclosing_home <name>: an FM_HOME that is itself nested inside another git
