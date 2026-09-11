@@ -1,0 +1,60 @@
+== product under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M2746FQWNN40C4TDB9JDX78K ==
+
+### case 1: header hard-wrapped mid-phrase (every phrase intact once reflowed)
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.T6ZVJw/home -> live secondmate homes
+  data/captain-shared.md: pushed
+[exit of an immediate re-run: 0]
+-- secondmate data/captain-shared.md --
+# Shared captain preferences
+
+This file is main-authoritative in the main
+firstmate home. In secondmate homes it is
+read-only in secondmate
+    homes and must not be
+    edited there. Route new captain-preference
+discoveries to the main firstmate through marked
+status or a document pointer.
+
+reflowed-header shared body v1
+
+### case 2 (adversarial): header genuinely missing "must not be edited there"
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.T6ZVJw/home -> live secondmate homes
+fm-config-inherit: error: primary source header missing required main-authoritative warning data/captain-shared.md at /tmp/fm-header-evidence.T6ZVJw/home/data/captain-shared.md
+  data/captain-shared.md: error - primary source header missing required main-authoritative warning
+[exit of an immediate re-run: 1]
+-- secondmate data/captain-shared.md --
+# Shared captain preferences
+
+This file is main-authoritative in the main
+firstmate home. In secondmate homes it is
+read-only in secondmate
+    homes and must not be
+    edited there. Route new captain-preference
+discoveries to the main firstmate through marked
+status or a document pointer.
+
+reflowed-header shared body v1
+
+### case 3 (adversarial): required phrase only appears after line 12, outside the header window
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.T6ZVJw/home -> live secondmate homes
+fm-config-inherit: error: primary source header missing required main-authoritative warning data/captain-shared.md at /tmp/fm-header-evidence.T6ZVJw/home/data/captain-shared.md
+  data/captain-shared.md: error - primary source header missing required main-authoritative warning
+[exit of an immediate re-run: 1]
+-- secondmate data/captain-shared.md --
+# Shared captain preferences
+
+This file is main-authoritative in the main
+firstmate home. In secondmate homes it is
+read-only in secondmate
+    homes and must not be
+    edited there. Route new captain-preference
+discoveries to the main firstmate through marked
+status or a document pointer.
+
+reflowed-header shared body v1

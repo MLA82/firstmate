@@ -1,0 +1,31 @@
+== product under test: /tmp/nm-base-4768e98 ==
+
+### case 1: header hard-wrapped mid-phrase (every phrase intact once reflowed)
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.krg1gc/home -> live secondmate homes
+fm-config-inherit: error: primary source header missing required main-authoritative warning data/captain-shared.md at /tmp/fm-header-evidence.krg1gc/home/data/captain-shared.md
+  data/captain-shared.md: error - primary source header missing required main-authoritative warning
+[exit of an immediate re-run: 1]
+-- secondmate data/captain-shared.md --
+(absent)
+
+### case 2 (adversarial): header genuinely missing "must not be edited there"
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.krg1gc/home -> live secondmate homes
+fm-config-inherit: error: primary source header missing required main-authoritative warning data/captain-shared.md at /tmp/fm-header-evidence.krg1gc/home/data/captain-shared.md
+  data/captain-shared.md: error - primary source header missing required main-authoritative warning
+[exit of an immediate re-run: 1]
+-- secondmate data/captain-shared.md --
+(absent)
+
+### case 3 (adversarial): required phrase only appears after line 12, outside the header window
+
+$ fm-config-push.sh
+config-push: /tmp/fm-header-evidence.krg1gc/home -> live secondmate homes
+fm-config-inherit: error: primary source header missing required main-authoritative warning data/captain-shared.md at /tmp/fm-header-evidence.krg1gc/home/data/captain-shared.md
+  data/captain-shared.md: error - primary source header missing required main-authoritative warning
+[exit of an immediate re-run: 1]
+-- secondmate data/captain-shared.md --
+(absent)

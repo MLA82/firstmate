@@ -1,0 +1,13 @@
+ok - confined put rejects incomplete and superseded payload generations
+ok - confined put rejects directory replacement without external writes
+ok - ambiguous receipt leaves one durable outbox and no duplicate dispatchable source
+ok - re-delivery after unknown completion converges without duplication
+ok - dropped transfer recovery overwrites scratch and delivers exactly once
+ok - concurrent handoffs serialize staging through confirmed cleanup
+ok - receiver removes one proven dead stale lock and retries once
+ok - bootstrap detects pending outbox handoffs without a journal
+ok - remote handoff releases durable work and separately retries its receiver wake
+ok - an escalated undelivered receiver wake stays retryable instead of jamming the outbox
+not ok - reused pending wake did not name the later batch's item (missing: 'wake-permanent-b')
+--- output ---
+fm-remote-secondmate-control.sh send ios [fm-from-firstmate]⁣corr=bf54a5285846fc99 New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task. Routed: wake-permanent-a. 

@@ -1,0 +1,46 @@
+== product under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M2746FQWNN40C4TDB9JDX78K ==
+
+$ fm-backlog-handoff.sh design postfach-uebergang-abschliessen
+handed off 1 item(s) to design: postfach-uebergang-abschliessen
+  into /tmp/fm-handoff-evidence.DaOtP5/design-home/data/backlog.md
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[exit 0]
+
+$ fm-backlog-handoff.sh design vault-regelfragen-umsetzung ops-runbook-refresh
+handed off 2 item(s) to design: vault-regelfragen-umsetzung ops-runbook-refresh
+  into /tmp/fm-handoff-evidence.DaOtP5/design-home/data/backlog.md
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+[exit 0]
+
+-- receiver inbox records (state/design.inbox/*.msg), one body per record --
+record 1: [fm-from-firstmate]⁣corr=60e92e0e5cc7c507 New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task. Routed: postfach-uebergang-abschliessen.
+record 2: [fm-from-firstmate]⁣corr=b216a2b80e1e6c9b New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task. Routed: vault-regelfragen-umsetzung, ops-runbook-refresh.
+total records: 2
+
+-- adversarial: rerun the first handoff (item already in the receiver backlog) --
+$ fm-backlog-handoff.sh design postfach-uebergang-abschliessen
+nothing to move: postfach-uebergang-abschliessen already present in /tmp/fm-handoff-evidence.DaOtP5/design-home/data/backlog.md
+[exit 0]
+
+-- receiver inbox records (state/design.inbox/*.msg), one body per record --
+record 1: [fm-from-firstmate]⁣corr=60e92e0e5cc7c507 New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task. Routed: postfach-uebergang-abschliessen.
+record 2: [fm-from-firstmate]⁣corr=b216a2b80e1e6c9b New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task. Routed: vault-regelfragen-umsetzung, ops-runbook-refresh.
+total records: 2
+
+-- leftover wake state files in main state/ --
+(none)
+
+-- receiver backlog (secondmate data/backlog.md) --
+## Queued
+- [ ] postfach-uebergang-abschliessen - first routed item (repo: alpha)
+
+- [ ] vault-regelfragen-umsetzung - second routed item (repo: alpha)
+- [ ] ops-runbook-refresh - third routed item (repo: alpha)
+## Done
+## In flight

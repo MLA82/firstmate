@@ -1,0 +1,5 @@
+ok - shared captain first copy converges, is read-only, and preserves local captain/learnings files
+ok - shared captain drift is quarantined collision-safely and repeated convergence is idempotent
+ok - missing primary shared file mirrors absence only after quarantining a local copy
+ok - unsafe shared captain artifacts are rejected and failure restores read-only mode
+not ok - a header reflowed mid-phrase should still validate when every phrase's words are intact

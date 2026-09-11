@@ -1,0 +1,4 @@
+ok - a routed handoff wakes once and a successful rerun stays idempotent
+not ok - first handoff's message did not name its own item (missing: 'postfach-uebergang-abschliessen')
+--- output ---
+[fm-from-firstmate]⁣corr=10ea5b671c3fa310 New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task.[fm-from-firstmate]⁣corr=3434743c62b9f01f New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task.
