@@ -1,0 +1,17 @@
+=== scenario: missing-treehouse-binary   (sandbox $SANDBOX=/tmp/nm-live-teardown.missing-treehouse-binary.Id1ueW)
+real treehouse: /home/mla/.local/bin/treehouse (v2.3.0)
+leased slot:    $SANDBOX/pool-root/.treehouse/project-ad508c/1/project
+--- spawn-format Stop hook command in the slot:
+touch '$SANDBOX/fm/state/task-live.turn-ended'; '/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28NGKAM3DYHW617NJ35Z46M/bin/fm-busy-event.sh' apply '$SANDBOX/fm/state' 'task-live' idle --gen 'gen-live' --source claude-hook --event stop 2>/dev/null || true
+command -v treehouse under teardown PATH: <none>
+--- teardown exit code: 1
+--- teardown stderr:
+/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28NGKAM3DYHW617NJ35Z46M/bin/fm-teardown.sh: Zeile 1625: treehouse: Befehl nicht gefunden
+error: treehouse return failed for worktree $SANDBOX/pool-root/.treehouse/project-ad508c/1/project; teardown aborted
+--- observable state AFTER:
+claude hook in real pool slot:               present
+state/task-live.meta:                        present
+state/task-live.backlog-close marker:        present
+backlog row state:                           in_flight
+--- treehouse status AFTER (real binary, this project's pool):
+1     leased       $SANDBOX/pool-root/.treehouse/project-ad508c/1/project  (held by live-driver)

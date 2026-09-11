@@ -1,0 +1,12 @@
+fm-gate-refuse rc=0 secs=22
+fm-grok-harness rc=0 secs=25
+fm-teardown-endpoint-safety rc=0 secs=65
+fm-backend rc=0 secs=69
+fm-kimi-harness rc=0 secs=71
+fm-backend-orca rc=0 secs=112
+fm-muse-harness rc=0 secs=148
+fm-remote-secondmate-parent-binding rc=0 secs=178
+fm-public-followup rc=0 secs=547
+fm-teardown rc=0 secs=554
+fm-backlog-atomicity rc=0 secs=608
+fm-captain-hold-lifecycle rc=0 secs=798

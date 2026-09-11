@@ -1,0 +1,18 @@
+=== scenario: wrong-project-real-pool-slot   (sandbox $SANDBOX=/tmp/nm-live-teardown.wrong-project-real-pool-slot.lQdtpV)
+real treehouse: /home/mla/.local/bin/treehouse (v2.3.0)
+leased slot:    $SANDBOX/pool-root/.treehouse/project-780be7/1/project
+--- spawn-format Stop hook command in the slot:
+touch '$SANDBOX/fm/state/task-live.turn-ended'; '/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28NGKAM3DYHW617NJ35Z46M/bin/fm-busy-event.sh' apply '$SANDBOX/fm/state' 'task-live' idle --gen 'gen-live' --source claude-hook --event stop 2>/dev/null || true
+other project's real leased slot: $SANDBOX/pool-root/.treehouse/other-7957e0/1/other
+--- teardown exit code: 1
+--- teardown stderr:
+REFUSED: worktree $SANDBOX/pool-root/.treehouse/other-7957e0/1/other recorded for task task-live is not a Treehouse pool slot of project $SANDBOX/project; nothing was changed.
+Refusing before touching a single process: state/task-live.meta's worktree= or project= is likely stale or wrong. Verify it against `treehouse status` before retrying.
+--- observable state AFTER:
+claude hook in real pool slot:               present
+state/task-live.meta:                        present
+state/task-live.backlog-close marker:        absent
+backlog row state:                           in_flight
+live process pid 3056019:                    ALIVE (untouched)
+--- treehouse status AFTER (real binary, this project's pool):
+1     leased       $SANDBOX/pool-root/.treehouse/project-780be7/1/project  (held by live-driver)

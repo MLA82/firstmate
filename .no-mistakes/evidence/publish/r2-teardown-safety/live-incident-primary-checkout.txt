@@ -1,0 +1,18 @@
+=== scenario: incident-primary-checkout   (sandbox $SANDBOX=/tmp/nm-live-teardown.incident-primary-checkout.ZS14Op)
+real treehouse: /home/mla/.local/bin/treehouse (v2.3.0)
+leased slot:    $SANDBOX/pool-root/.treehouse/project-3d124b/1/project
+--- spawn-format Stop hook command in the slot:
+touch '$SANDBOX/fm/state/task-live.turn-ended'; '/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28NGKAM3DYHW617NJ35Z46M/bin/fm-busy-event.sh' apply '$SANDBOX/fm/state' 'task-live' idle --gen 'gen-live' --source claude-hook --event stop 2>/dev/null || true
+--- live process rooted in primary checkout: pid 3052080 cwd=$SANDBOX/project
+--- teardown exit code: 1
+--- teardown stderr:
+REFUSED: worktree $SANDBOX/project recorded for task task-live is not a Treehouse pool slot of project $SANDBOX/project; nothing was changed.
+Refusing before touching a single process: state/task-live.meta's worktree= or project= is likely stale or wrong. Verify it against `treehouse status` before retrying.
+--- observable state AFTER:
+claude hook in real pool slot:               present
+state/task-live.meta:                        present
+state/task-live.backlog-close marker:        absent
+backlog row state:                           in_flight
+live process pid 3052080:                    ALIVE (untouched)
+--- treehouse status AFTER (real binary, this project's pool):
+1     leased       $SANDBOX/pool-root/.treehouse/project-3d124b/1/project  (held by live-driver)
