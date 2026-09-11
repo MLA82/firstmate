@@ -14,9 +14,8 @@
 # Untracked-only working trees (e.g. an ignored tool cache that was never added
 # to .gitignore) never block a fast-forward: git itself refuses a checkout or
 # ff-only merge that would overwrite an untracked file, so that self-protection
-# is relied on instead of treating untracked-only as dirty. Their presence is
-# still reported, just not as STUCK. See sync_project's dirty/untracked split
-# and stuck_state.
+# is relied on instead of treating untracked-only as dirty. A re-attach checkout
+# git refuses is still reported STUCK, carrying git's reason.
 # Still skips (benignly) local-only/no-origin projects, missing remotes/branches,
 # and fetch failures.
 # A candidate under projects/ must be the root of its own work tree: git discovery
@@ -273,9 +272,8 @@ local_default_safe_for_recovery() {
 }
 
 # Human-readable name for the unsafe state the clone is in, used in the STUCK
-# warning. Reads $cur (current branch, empty when detached), $dirty (tracked
-# changes only - see sync_project), $untracked, and the HEAD-vs-$BASE ancestry
-# to pick the most informative description.
+# warning. Reads $cur (current branch, empty when detached), $dirty, and the
+# HEAD-vs-$BASE ancestry to pick the most informative description.
 stuck_state() {
   local s
   if [ -n "$cur" ]; then
@@ -291,21 +289,18 @@ stuck_state() {
   else
     s="detached HEAD"
   fi
-  if [ "$dirty" = yes ]; then
-    s="$s with uncommitted changes"
-  elif [ "$untracked" = yes ]; then
-    s="$s with untracked files"
-  fi
+  [ "$dirty" = no ] || s="$s with uncommitted changes"
   printf '%s\n' "$s"
 }
 
 # Loud, quantified report for a clone we deliberately leave untouched. Includes
 # how far behind origin/<default> it is, so a chronically-stuck clone is visibly
-# distinct from a benign one-off skip.
+# distinct from a benign one-off skip. An optional detail is appended in
+# parentheses.
 report_stuck() {
-  local state=$1 behind
+  local state=$1 detail=${2:-} behind
   behind=$(git -C "$PROJ" rev-list --count "HEAD..$BASE" 2>/dev/null) || behind="?"
-  echo "$label: STUCK: on $state, $behind commits behind $BASE - needs attention"
+  echo "$label: STUCK: on $state, $behind commits behind $BASE - needs attention${detail:+ ($detail)}"
 }
 
 sync_project() {
@@ -368,22 +363,10 @@ sync_project() {
   fi
 
   cur=$(git -C "$PROJ" symbolic-ref --short HEAD 2>/dev/null || echo "")
-  # dirty: real, potentially unversioned work (modified/staged/deleted/conflicted
-  # tracked paths) - this alone must keep blocking every path below unchanged.
-  # untracked: untracked-only paths (e.g. an ignored tool cache). These can never
-  # be silently destroyed by a checkout or ff-only merge - git itself refuses one
-  # that would overwrite an existing untracked file - so untracked-only never
-  # blocks by itself; see the header comment and stuck_state.
-  status_output=$(git -C "$PROJ" status --porcelain 2>/dev/null) || status_output=""
+  # Only tracked-file changes count as dirty; untracked-only paths never block
+  # (see the header comment).
   dirty=no
-  untracked=no
-  if [ -n "$status_output" ]; then
-    if printf '%s\n' "$status_output" | grep -qv '^??'; then
-      dirty=yes
-    else
-      untracked=yes
-    fi
-  fi
+  [ -z "$(git -C "$PROJ" status --porcelain --untracked-files=no 2>/dev/null | head -1)" ] || dirty=yes
   recovered=no
 
   if [ "$cur" != "$DEFAULT" ]; then
@@ -392,13 +375,12 @@ sync_project() {
     # (it is an ancestor of origin/<default>) and whose <default> branch is free
     # to check out here. Untracked-only is not a reason to withhold recovery: the
     # checkout below carries the same overwrite protection as the ff-only merge
-    # further down, so it is checked here for its real failure reason instead of
-    # pre-emptively refusing on untracked presence alone. Re-attaching to an
-    # already-published commit strands nothing, and the fast-forward path below
-    # then catches the clone up. Anything else - a non-default named branch, a
-    # detached HEAD with unique commits, a tracked-file dirty tree, or <default>
-    # already checked out elsewhere - may hold real work, so it is reported
-    # loudly and left untouched.
+    # further down, and a checkout git refuses is reported STUCK with git's
+    # reason. Re-attaching to an already-published commit strands nothing, and
+    # the fast-forward path below then catches the clone up. Anything else - a
+    # non-default named branch, a detached HEAD with unique commits, a
+    # tracked-file dirty tree, or <default> already checked out elsewhere - may
+    # hold real work, so it is reported loudly and left untouched.
     if [ -z "$cur" ] && [ "$dirty" = no ] \
         && git -C "$PROJ" merge-base --is-ancestor HEAD "$BASE" 2>/dev/null \
         && ! default_checked_out_elsewhere \
@@ -408,7 +390,7 @@ sync_project() {
         if [ -n "$checkout_output" ]; then
           reason="$reason: $(first_line "$checkout_output")"
         fi
-        echo "$label: skipped: $reason"
+        report_stuck "$(stuck_state)" "$reason"
         return 0
       fi
       recovered=yes
@@ -440,9 +422,7 @@ sync_project() {
   }
   if [ "$local_rev" = "$remote_rev" ]; then
     if [ "$recovered" = yes ]; then
-      note=""
-      [ "$untracked" = no ] || note=" (untracked files present)"
-      echo "$label: recovered: re-attached $DEFAULT (already current)$note"
+      echo "$label: recovered: re-attached $DEFAULT (already current)"
     else
       echo "$label: already current"
     fi
@@ -469,14 +449,10 @@ sync_project() {
     echo "$label: skipped: fast-forward completed but cannot read local $DEFAULT"
     return 0
   }
-  notes=""
-  [ "$untracked" = no ] || notes="untracked files present"
-  note=""
-  [ -z "$notes" ] || note=" ($notes)"
   if [ "$recovered" = yes ]; then
-    echo "$label: recovered: re-attached $DEFAULT, synced $before..$after$note"
+    echo "$label: recovered: re-attached $DEFAULT, synced $before..$after"
   else
-    echo "$label: synced $before..$after$note"
+    echo "$label: synced $before..$after"
   fi
   return 0
 }

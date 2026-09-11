@@ -18,10 +18,11 @@
 # with the enclosing repo left untouched, in both the whole-fleet and
 # single-project forms, while a symlinked clone dir still syncs.
 # It also pins the tracked-vs-untracked dirty split: a clone with only untracked
-# files (e.g. an ignored tool cache) still fast-forwards and reports its presence
-# instead of going STUCK, the same relaxation applies to the detached-HEAD
-# recovery checkout, and a fast-forward or a recovery checkout genuinely blocked
-# by a colliding untracked file is still reported cleanly rather than swallowed.
+# files (e.g. an ignored tool cache) still fast-forwards instead of going STUCK,
+# the same relaxation applies to the detached-HEAD recovery checkout, a
+# fast-forward genuinely blocked by a colliding untracked file is reported as a
+# skip, and a recovery checkout blocked the same way stays STUCK carrying git's
+# own reason rather than swallowing it.
 #
 # It also pins the orphaned .git/packed-refs.lock recovery in the fetch step
 # (fetch_with_packed_refs_lock_guard, backed by bin/fm-lock-lib.sh's shared
@@ -331,12 +332,11 @@ test_untracked_only_advances_not_stuck() {
   out=$(run_sync "$home" "$clone")
 
   assert_contains "$out" "xi: synced" "untracked-only clone still fast-forwards"
-  assert_contains "$out" "untracked files present" "sync message notes the untracked files"
   assert_not_contains "$out" "STUCK" "untracked-only clone must not be reported STUCK"
   [ "$(head_sha "$clone")" = "$(git -C "$clone" rev-parse origin/main)" ] \
     || fail "untracked-only clone was not fast-forwarded"
   [ -f "$clone/.tool-cache" ] || fail "untracked file was discarded by the sync"
-  pass "a clone with only untracked files still fast-forwards, notes the untracked files, and is not STUCK"
+  pass "a clone with only untracked files still fast-forwards and is not STUCK"
 }
 
 test_detached_untracked_only_recovers() {
@@ -352,7 +352,6 @@ test_detached_untracked_only_recovers() {
 
   assert_contains "$out" "pi: recovered: re-attached main, synced" \
     "detached HEAD with only untracked files still recovers"
-  assert_contains "$out" "untracked files present" "recovery message notes the untracked files"
   assert_not_contains "$out" "STUCK" "untracked-only detached HEAD must not be reported STUCK"
   [ "$(git -C "$clone" symbolic-ref --short HEAD 2>/dev/null)" = "main" ] \
     || fail "expected re-attach to main, HEAD still detached"
@@ -362,7 +361,7 @@ test_detached_untracked_only_recovers() {
   pass "detached HEAD with only untracked files is re-attached and fast-forwarded, not left STUCK"
 }
 
-test_detached_checkout_collision_reported_cleanly() {
+test_detached_checkout_collision_is_stuck_with_reason() {
   local home clone work out
   home=$(new_home)
   clone=$(build_pair "$home" upsilon)
@@ -370,8 +369,7 @@ test_detached_checkout_collision_reported_cleanly() {
   # Local main carries a file the detached commit does not, and the worktree
   # holds an untracked file at that same path. Untracked-only no longer
   # withholds recovery, so the re-attach checkout is the thing that collides -
-  # git refuses it, and that real reason must surface as a skip instead of
-  # disappearing into STUCK.
+  # git refuses it, the clone stays STUCK, and git's real reason rides along.
   commit_file "$work" new.txt "from-origin" "add new.txt"
   git -C "$work" push -q origin main
   git -C "$clone" pull -q --ff-only
@@ -379,18 +377,20 @@ test_detached_checkout_collision_reported_cleanly() {
   git -C "$clone" checkout --detach --quiet HEAD~1
   printf 'local-untracked-version\n' > "$clone/new.txt"
 
-  out=$(run_sync "$home" "$clone")
+  out=$(LC_ALL=C run_sync "$home" "$clone")
 
-  assert_contains "$out" "upsilon: skipped: checkout failed" \
-    "a colliding re-attach checkout is reported as a clean skip, not swallowed"
+  assert_contains "$out" "upsilon: STUCK: on detached HEAD, " \
+    "a colliding re-attach checkout stays loudly STUCK"
+  assert_contains "$out" "- needs attention (checkout failed: " \
+    "the STUCK line names the failed re-attach checkout"
   assert_contains "$out" "untracked working tree files would be overwritten" \
-    "the skip carries git's own reason for refusing the checkout"
-  assert_not_contains "$out" "STUCK" "a failed recovery checkout is a skip, not STUCK"
+    "the STUCK line carries git's own reason for refusing the checkout"
+  assert_not_contains "$out" "skipped" "a failed recovery checkout is STUCK, not a skip"
   [ -z "$(git -C "$clone" symbolic-ref --short HEAD 2>/dev/null)" ] \
     || fail "clone must be left detached when the recovery checkout fails"
   grep -q "local-untracked-version" "$clone/new.txt" \
     || fail "colliding untracked file content was overwritten"
-  pass "a recovery checkout blocked by a colliding untracked file is reported cleanly, not swallowed"
+  pass "a recovery checkout blocked by a colliding untracked file stays STUCK with git's reason"
 }
 
 test_untracked_collision_blocks_ff_cleanly() {
@@ -801,7 +801,7 @@ test_detached_clean_ancestor_with_diverged_local_default_is_stuck_untouched
 test_dirty_is_stuck_untouched
 test_untracked_only_advances_not_stuck
 test_detached_untracked_only_recovers
-test_detached_checkout_collision_reported_cleanly
+test_detached_checkout_collision_is_stuck_with_reason
 test_untracked_collision_blocks_ff_cleanly
 test_non_default_branch_is_stuck_untouched
 test_diverged_is_stuck_untouched
