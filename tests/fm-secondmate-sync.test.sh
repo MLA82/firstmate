@@ -839,7 +839,7 @@ test_seed_marker_clean_when_gitignored() {
   seed_marked_home "$w" sm "$base"          # fresh home at the post-fix HEAD
 
   # The exact dirtiness signal bin/fm-fleet-sync.sh reads (its line: dirty=yes when
-  # `git status --porcelain | head -1` is non-empty).
+  # `git status --porcelain --untracked-files=no | head -1` is non-empty).
   [ -z "$(git -C "$w/sm" status --porcelain)" ] \
     || fail "seed marker still dirties a fresh home: $(git -C "$w/sm" status --porcelain)"
   # And the secondmate ff sweep sees no dirt: an at-HEAD home is a clean no-op.
