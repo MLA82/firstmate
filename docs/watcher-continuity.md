@@ -99,9 +99,7 @@ An actionable child output returns that reason normally.
 A zero/empty child return rechecks the home lock and beacon, attaches to a verified healthy successor when one exists, or resolves the close against the watcher's bounded terminal-delivery ledger.
 An attached arm follows verified identity-matched successors and resolves the same way when that chain ends without one, because it holds no handle on the watcher's stdout and cannot read the reason line itself.
 Before releasing its singleton lock after printing an actionable reason, the watcher records that reason with its PID and process identity in `state/.watch-deliveries.log`.
-It publishes the same kind of record, without exiting, for a benign absorbed-only cycle (an absorbed signal or an absorbed heartbeat), so a later unexplained close still has a record to attach to even when the watcher never had an actionable reason to print.
 A matching PID and identity lets an attached arm report the delivered reason and exit zero even after its durable wake was handled and acknowledged, while an unrelated queue producer or a recycled PID cannot satisfy the match.
-A matching record whose reason starts with `absorbed` resolves as a clean close rather than a failure, since it proves the watcher ended after only absorbing benign wakes.
 Only a cycle with no matching delivery record emits `watcher: FAILED - cycle ended without an actionable reason` and exits nonzero.
 
 The arm layer appends one tab-separated record per observed cycle to `state/.watch-cycle-exits.log`.

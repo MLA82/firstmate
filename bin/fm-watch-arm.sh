@@ -298,12 +298,6 @@ close_unobserved_cycle() {
   fi
   fm_lock_release "$WATCH_DELIVERY_LOCK"
   if [ -n "$reason" ]; then
-    # A delivery record whose reason starts with "absorbed" means the watcher
-    # ended after only absorbing benign events - perfectly healthy, just no
-    # actionable wake was ever published. Treat it as a clean close.
-    case "$reason" in
-      "absorbed "*) printf '%s\n' "$reason"; return 0 ;;
-    esac
     printf '%s\n' "$reason"
     return 0
   fi

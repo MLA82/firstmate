@@ -151,6 +151,27 @@ receiver_wake_message_clear() {  # <secondmate-id>
   rm -f -- "$(receiver_wake_message_path "$1")"
 }
 
+# A still-pending wake that a later batch reuses must name every item routed
+# since it was recorded, so the new keys are merged into the stored list. A
+# stored generic line names no items and is left as it is.
+receiver_wake_message_add_keys() {  # <secondmate-id> <item-key>...
+  local id=$1 prefix="$RECEIVER_WAKE_MESSAGE Routed: " message key
+  local -a keys=()
+  shift
+  message=$(receiver_wake_message_read "$id")
+  case "$message" in "$prefix"*.) ;; *) return 0 ;; esac
+  message=${message#"$prefix"}
+  message=${message%.}
+  while [ -n "$message" ]; do
+    keys+=("${message%%, *}")
+    case "$message" in *", "*) message=${message#*, } ;; *) message= ;; esac
+  done
+  for key in "$@"; do
+    case " ${keys[*]} " in *" $key "*) ;; *) keys+=("$key") ;; esac
+  done
+  receiver_wake_message_write "$id" "$(receiver_wake_message "${keys[@]}")"
+}
+
 ACTIVE_HANDOFF_LOCK=
 ACTIVE_REGISTRY_LOCK=
 RECEIVER_WAKE_IGNORE_ID=
@@ -662,7 +683,7 @@ outbox_item_count() { # <path>
 }
 
 remote_deliver_outbox() { # <secondmate-id> <outbox-path>
-  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending
+  local id=$1 outbox=$2 remote_rel receive_out snapshot bytes hash generation counter counter_tmp current marker wake_rc=0 wake_state=pending key
   local -a wake_keys=()
   [ -f "$outbox" ] && [ ! -L "$outbox" ] || {
     echo "error: pending outbox is unavailable or unsafe: $outbox" >&2
@@ -707,17 +728,22 @@ remote_deliver_outbox() { # <secondmate-id> <outbox-path>
     return 1
   fi
   marker="$STATE/.backlog-handoff-$id.wake-pending"
+  # The outbox's own item lines are the batch's ground truth here, valid
+  # for the fresh-stage call and every later resume alike since resuming
+  # only ever re-reads this same durable file.
+  while IFS= read -r key; do
+    [ -n "$key" ] && wake_keys+=("$key")
+  done < <(receiver_wake_item_keys_from_file "$outbox")
   if [ "$RECEIVER_WAKE_IGNORE_ID" = "$id" ]; then
     wake_state=dropped
     wake_rc=1
-  elif ! receiver_wake_pending_valid "$id" && ! receiver_wake_confirmed_valid "$id"; then
-    # The outbox's own item lines are the batch's ground truth here, valid
-    # for the fresh-stage call and every later resume alike since resuming
-    # only ever re-reads this same durable file.
-    while IFS= read -r key; do
-      [ -n "$key" ] && wake_keys+=("$key")
-    done < <(receiver_wake_item_keys_from_file "$outbox")
-    receiver_wake_mark_pending "$id" "$(receiver_wake_message "${wake_keys[@]}")" || {
+  elif receiver_wake_pending_valid "$id"; then
+    receiver_wake_message_add_keys "$id" ${wake_keys[@]+"${wake_keys[@]}"} || {
+      wake_state=dropped
+      wake_rc=1
+    }
+  elif ! receiver_wake_confirmed_valid "$id"; then
+    receiver_wake_mark_pending "$id" "$(receiver_wake_message ${wake_keys[@]+"${wake_keys[@]}"})" || {
       wake_state=dropped
       wake_rc=1
     }
