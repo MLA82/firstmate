@@ -1,0 +1,43 @@
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /tmp/nm-base-01M271M1/bin/fm-update.sh   # case=untracked
+firstmate: skipped: dirty working tree
+secondmate sm1: skipped: dirty working tree
+reread-firstmate: no
+restart-secondmates: none
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=b38ad08 origin/main=ad045a5 (behind)
+    status: ?? .opencode/
+sm1   head=b38ad08 origin/main=ad045a5 (behind)
+    status: ?? .fm-secondmate-home
+    status: ?? .tool-cache
+
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /tmp/nm-base-01M271M1/bin/fm-update.sh   # case=tracked
+firstmate: skipped: dirty working tree
+secondmate sm1: skipped: dirty working tree
+reread-firstmate: no
+restart-secondmates: none
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=e97631c origin/main=2663573 (behind)
+    status:  M README.md
+sm1   head=e97631c origin/main=2663573 (behind)
+    status:  M README.md
+    status: ?? .fm-secondmate-home
+    status: ?? .tool-cache
+
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /tmp/nm-base-01M271M1/bin/fm-update.sh   # case=collision
+firstmate: skipped: dirty working tree
+secondmate sm1: updated e97631c..b7a21be (instructions changed: AGENTS.md, bin)
+reread-firstmate: no
+restart-secondmates: fm-sm1
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=e97631c origin/main=b7a21be (behind)
+    status: ?? bin/collide.txt
+sm1   head=b7a21be origin/main=b7a21be (at-origin)
+    status: ?? .fm-secondmate-home
+    main/bin/collide.txt: local-untracked-version
+

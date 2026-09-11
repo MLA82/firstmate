@@ -1,0 +1,32 @@
+$ FM_HOME=/tmp/nm-live-fs-after FM_FLEET_PRUNE=0 /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M271M1BSBME96YZ17QQVDRCE/bin/fm-fleet-sync.sh
+a-untracked-cache: synced 9a1448a..462441e
+b-detached-untracked: recovered: re-attached main, synced 9a1448a..462441e
+c-tracked-dirty: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+d-tracked-plus-untracked: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+e-ff-collision: STUCK: on branch main, 1 commits behind origin/main - needs attention (fast-forward failed: error: The following untracked working tree files would be overwritten by merge:)
+f-checkout-collision: STUCK: on detached HEAD, 2 commits behind origin/main - needs attention (checkout failed: error: The following untracked working tree files would be overwritten by checkout:)
+g-reattach-then-ff-collision: STUCK: on branch main, 1 commits behind origin/main - needs attention (re-attached main, fast-forward failed: error: The following untracked working tree files would be overwritten by merge:)
+exit=0
+
+--- resulting clone state
+a-untracked-cache              head=main     462441e origin/main=462441e (at-origin)
+    status: ?? .opencode/
+    .opencode/opencode.db preserved
+b-detached-untracked           head=main     462441e origin/main=462441e (at-origin)
+    status: ?? .tool-cache
+    .tool-cache preserved
+c-tracked-dirty                head=main     9a1448a origin/main=462441e (behind)
+    status:  M file.txt
+d-tracked-plus-untracked       head=main     9a1448a origin/main=ad45233 (behind)
+    status:  M file.txt
+    status: ?? .tool-cache
+    .tool-cache preserved
+e-ff-collision                 head=main     2087a1a origin/main=63d725f (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version
+f-checkout-collision           head=DETACHED 2087a1a origin/main=4a72ca5 (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version
+g-reattach-then-ff-collision   head=main     2087a1a origin/main=63d725f (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version

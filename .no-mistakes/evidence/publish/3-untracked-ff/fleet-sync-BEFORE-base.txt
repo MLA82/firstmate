@@ -1,0 +1,32 @@
+$ FM_HOME=/tmp/nm-live-fs-before FM_FLEET_PRUNE=0 /tmp/nm-base-01M271M1/bin/fm-fleet-sync.sh
+a-untracked-cache: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+b-detached-untracked: STUCK: on detached HEAD with uncommitted changes, 1 commits behind origin/main - needs attention
+c-tracked-dirty: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+d-tracked-plus-untracked: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+e-ff-collision: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+f-checkout-collision: STUCK: on detached HEAD with uncommitted changes, 2 commits behind origin/main - needs attention
+g-reattach-then-ff-collision: STUCK: on detached HEAD with uncommitted changes, 1 commits behind origin/main - needs attention
+exit=0
+
+--- resulting clone state
+a-untracked-cache              head=main     4080d44 origin/main=13a1dba (behind)
+    status: ?? .opencode/
+    .opencode/opencode.db preserved
+b-detached-untracked           head=DETACHED 4080d44 origin/main=13a1dba (behind)
+    status: ?? .tool-cache
+    .tool-cache preserved
+c-tracked-dirty                head=main     4080d44 origin/main=13a1dba (behind)
+    status:  M file.txt
+d-tracked-plus-untracked       head=main     4080d44 origin/main=d23a92a (behind)
+    status:  M file.txt
+    status: ?? .tool-cache
+    .tool-cache preserved
+e-ff-collision                 head=main     68529f6 origin/main=04a51d3 (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version
+f-checkout-collision           head=DETACHED 68529f6 origin/main=b464eed (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version
+g-reattach-then-ff-collision   head=DETACHED 68529f6 origin/main=04a51d3 (behind)
+    status: ?? new.txt
+    new.txt: local-untracked-version

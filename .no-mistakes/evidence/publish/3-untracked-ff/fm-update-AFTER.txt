@@ -1,0 +1,43 @@
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M271M1BSBME96YZ17QQVDRCE/bin/fm-update.sh   # case=untracked
+firstmate: updated d0c30ab..ab61aca (instructions changed: AGENTS.md)
+secondmate sm1: updated d0c30ab..ab61aca (instructions changed: AGENTS.md)
+reread-firstmate: yes
+restart-secondmates: fm-sm1
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=ab61aca origin/main=ab61aca (at-origin)
+    status: ?? .opencode/
+sm1   head=ab61aca origin/main=ab61aca (at-origin)
+    status: ?? .fm-secondmate-home
+    status: ?? .tool-cache
+
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M271M1BSBME96YZ17QQVDRCE/bin/fm-update.sh   # case=tracked
+firstmate: skipped: dirty working tree
+secondmate sm1: skipped: dirty working tree
+reread-firstmate: no
+restart-secondmates: none
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=7d05044 origin/main=98d9e9d (behind)
+    status:  M README.md
+sm1   head=7d05044 origin/main=98d9e9d (behind)
+    status:  M README.md
+    status: ?? .fm-secondmate-home
+    status: ?? .tool-cache
+
+$ FM_ROOT_OVERRIDE=<w>/main FM_HOME=<w>/home /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M271M1BSBME96YZ17QQVDRCE/bin/fm-update.sh   # case=collision
+firstmate: skipped: fast-forward failed: error: The following untracked working tree files would be overwritten by merge:
+secondmate sm1: updated 7d05044..91d09e6 (instructions changed: AGENTS.md, bin)
+reread-firstmate: no
+restart-secondmates: fm-sm1
+nudge-secondmates: none
+exit=0
+--- resulting state
+main  head=7d05044 origin/main=91d09e6 (behind)
+    status: ?? bin/collide.txt
+sm1   head=91d09e6 origin/main=91d09e6 (at-origin)
+    status: ?? .fm-secondmate-home
+    main/bin/collide.txt: local-untracked-version
+
