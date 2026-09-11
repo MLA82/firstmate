@@ -1,0 +1,971 @@
+FM_TEST_BEGIN 2026-09-11T14:56:13Z tests/fm-daemon.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - fm-afk-start.sh fails before daemon startup when the afk flag cannot be written
+ok - fm-afk-start.sh ignores stale pidfile-only live pids
+ok - fm-afk-start.sh reclaims stale daemon locks whose live pid identity no longer matches
+ok - supervise daemon state root is scoped by FM_HOME
+ok - routine signal self-handles
+ok - captain-relevant status verbs escalate
+ok - check + unknown escalate; heartbeat self-handles
+ok - transient stale self-handles and records a persistence marker
+ok - enriched stale wedges bypass status absorption except under a declared wait, without disturbing busy workers
+ok - an enriched wedge under a declared wait uses the pause cadence and restores wedge detection on resume
+ok - stale + terminal status escalates immediately
+ok - stale escalation and current wait cadence remain independent
+ok - paused reasons with captain phrases remain pause-classified
+ok - a captain-held transfer classifies as pause, not as a wedge candidate
+ok - handle_wake on a paused stale records a pause marker, drops the wedge marker, and does not escalate
+ok - handle_wake records a declared pause from a routine signal for long-cadence rechecks
+ok - a terminal signal clears pause and stale tracking across both supervisors
+ok - housekeeping migrates a normal-watcher's declared pause into daemon tracking
+ok - housekeeping clears an already-resumed watcher pause across both supervisors
+ok - housekeeping seeds pause tracking from status without a watcher marker
+ok - persistent stale escalates after threshold and clears its marker
+ok - resumed (busy) stale clears its marker without escalating
+ok - housekeeping re-surfaces a stale declared pause on the long cadence and resets its window
+ok - housekeeping re-surfaces a forgotten captain hold on the long cadence and resets its window
+ok - a busy pane cannot gate the pause clear once its crew's status no longer declares the wait
+ok - housekeeping matures a busy pane's declared-wait window into exactly one recheck per window
+ok - housekeeping bounds a distant declared time, defers to a near one, and rechecks a passed one at once
+ok - housekeeping clears a paused marker once the crew is no longer declaring the pause
+ok - housekeeping clears the pause marker once a captain hold is answered
+ok - housekeeping moves an existing stale marker to pause before wedge escalation
+ok - housekeeping moves a captain hold's existing stale marker to pause before wedge escalation
+ok - housekeeping clears tracking when a crew leaves pause
+ok - persistent herdr stale resolves the target from metadata and escalates
+ok - herdr idle busy-footer stale clears through capture corroboration
+ok - resumed herdr stale clears through backend-aware busy state
+ok - persistent Orca stale resolves the terminal from metadata
+ok - multiple escalations flush as a single batched digest
+ok - batch flush measures max-delay from the first append, not the last
+ok - catch-all scan escalates a missed terminal once, not twice
+ok - handle_wake routes routine->self and captain->escalate
+ok - a decision-owned queued row escalates once as the decision, then suppresses until the status changes
+ok - a captain-held decision-owned row is self-handled without escalation, now and on repeat
+ok - INJECT_SKIP forces self-handle, bypassing captain-relevant classification
+ok - is_wake_reason distinguishes watcher wake reasons from singleton-status stdout
+ok - terminal-stale escalate removes its marker so housekeeping does not re-escalate
+ok - captain signal escalate marks seen so the catch-all scan does not re-fire
+ok - _collapse_newlines replaces newlines with literal separator
+ok - afk flag absent: daemon does not inject, buffer preserved
+ok - busy-guard defers injection when supervisor pane is busy
+ok - marker detection: marker -> stay afk, no marker -> exit afk
+ok - /afk invocation is exempt from afk exit (no self-cancel)
+ok - should_exit_afk returns false when afk is not active
+ok - strip_injection_marker removes the sentinel marker cleanly
+ok - pane_input_pending detects partial input on the cursor line
+ok - pane_input_pending: a blank unidentified cursor row defers (strict container-proof rule)
+ok - pane_input_pending: only proven empty agent prompts pass
+ok - fm_tmux_composer_state: a bare shell prompt ($/%/#/>) reads unknown, never empty (dead-shell injection safety)
+ok - fm_tmux_composer_state: a bordered composer box and bare agent glyphs (❯/›) still read empty
+ok - fm_tmux_composer_state: only matching edge borders form a composer box
+ok - pane_input_pending preserves bright placeholder-like drafts in styled captures
+ok - classify_signal dedupes against the catch-all scan seen marker
+ok - turn-end markers stay routine while mixed actionable status batches escalate
+ok - an actionable event is escalated to an away captain despite later routine appends
+ok - the daemon commits exactly the endpoint captured by classification
+ok - a stale wake escalates a blocker hidden by later progress
+ok - a stale span read failure surfaces without advancing its marker
+ok - a recreated status rejects the old captured identity
+ok - an unverifiable status identity surfaces without advancing markers
+ok - a status read failure surfaces without advancing the daemon suppressor
+ok - catch-all routine scans advance before later actionable appends
+ok - failed escalation writes retain durable wakes and classification positions
+ok - catch-all markers advance only after escalation buffering succeeds
+ok - classification failure retains the complete durable wake batch
+ok - missing-status stale wakes remain ordinary and acknowledgeable
+ok - transient unreadable signals recover without advancing their position
+ok - daemon catch-all reclassifies permission-recovered status content
+ok - a permanent classification failure is reported, acknowledged, and never advances its position
+ok - the away-mode catch-all scan surfaces a masked event once
+ok - classify_stale dedupes against the signal path seen marker
+ok - AFK nonterminal working:+merged keeps wedge aging and re-escalates at bound
+ok - genuine done: and merge-check events still escalate
+ok - pane_input_pending: an idle bordered composer is NOT pending (afk-invx-i5)
+ok - pane_input_pending: text inside a bordered composer is still pending
+ok - submit-ACK confirms a submit when the composer returns to a bordered-empty box
+ok - submit-ACK reports pending on a persistently swallowed Enter (type-once)
+ok - max-defer on an empty stuck pane types once, alarms, and preserves the buffer
+ok - max-defer flushes and clears the buffer on an empty bordered pane
+ok - max-defer on a pending composer alarms without typing
+ok - normal flush clears a stale wedge marker
+ok - below MAX_DEFER: no inject, no alarm, buffer preserved
+ok - max-defer does not flush or alarm while afk is inactive
+ok - library mode: sourcing the daemon defaults FM_WEDGE_ALARM_EXEC to discard (no test can fire a real notification)
+ok - wake helpers replace inherited notifier overrides with the safe recorder
+ok - the discard seam suppresses every notifier, including command: (fires nothing)
+ok - direct notifier helpers honor the discard seam, including command:
+ok - osascript channel routes through the notifier seam with the summary (never a real notification)
+ok - herdr channel routes through the notifier seam with the summary (never a real notification)
+ok - command channel runs the captain command with the summary on $1 and on stdin
+ok - command channel failures redact configured commands while logging their exit status
+ok - unknown channel directives are redacted while the alarm keeps running
+ok - off disables every active alert regardless of directive position (marker and tmux flash are unaffected)
+ok - auto resolves to the macOS osascript notifier on Darwin (default-on)
+ok - auto on a non-macOS platform selects no built-in OS channel (the marker or a configured command carries it)
+ok - config/wedge-alarm selects every configured channel and skips comment and blank lines
+ok - a failing channel logs and falls back to the next channel, never crashing the alarm
+ok - a hung notifier is bounded, logged, and falls through to the next channel
+ok - a backgrounded command notifier remains bounded until its process group is reaped
+ok - a hung notifier override is bounded, logged, and proceeds to the next channel
+[1]+  Beendet                 sh -c 'sleep 30 & printf "%s" "$!" > "$1"; wait' sh "$child_file"
+ok - daemon shutdown stops and reaps the active notifier process group
+ok - inject_wedge_alarm writes the marker AND emits the active alert even with no tmux status-line (herdr backend)
+ok - in-process wedge throttle prevents alert spam when the marker cannot persist
+ok - fm-send returns 3 with a non-error no-resend warning when confirmation stays pending
+ok - fm-send exits non-zero when initial text send fails
+ok - fm-send exits non-zero unless delivery is proven empty
+ok - discover_supervisor_backend: override > TMUX_PANE > HERDR_ENV+HERDR_PANE_ID > tmux fallback
+ok - discover_supervisor_target: override > TMUX_PANE > herdr '<session>:<pane-id>' composition > firstmate:0 fallback
+ok - pane_is_busy: herdr native busy_state='busy' short-circuits without a capture fallback
+ok - primary busy guard isolates rendered signatures by detected harness
+ok - pane_is_busy: omitted backend defaults to tmux for Grok's isolated fallback
+ok - pane_input_pending: dispatches through fm_backend_composer_state for backend=herdr
+ok - inject_msg: herdr busy-guard defers before ever attempting a submit
+ok - inject_msg: herdr composer-guard defers before ever attempting a submit
+ok - inject_msg: herdr pane-gone check defers before any busy/composer/submit call
+ok - inject_msg: dispatches busy-guard/composer-guard/submit through the herdr backend and succeeds on a confirmed empty composer
+ok - inject_msg: defers on a dead-shell/unreadable composer (unknown), never typing the escalation into a shell
+ok - inject_msg: unrecognized composer states defer by default
+FM_TEST_END 2026-09-11T14:57:44Z tests/fm-daemon.test.sh exit=0 duration_ms=91540 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T14:57:44Z tests/fm-secondmate-safety.test.sh family=secondmate expected_gate_skip=none
+ok - FM_HOME parameterizes data and state paths
+ok - fm-lock status is scoped per home
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - seed allows overlapping project clone lists and drops the owns/owner routing
+ok - home-seed validation rejects registry records no operational parser can consume
+ok - home seeding refuses broken registry symlinks before provisioning
+ok - home seeding refuses unreadable registries before provisioning
+ok - home seed validation rejects duplicate home routes
+ok - home seed validation rejects duplicate id routes
+ok - home seed validation rejects nested home routes
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+leased worktree for dash
+ok - home seeding durably leases treehouse-acquired dash homes under the secondmate id
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding returns rejected acquired homes through treehouse
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seed rollback warns when treehouse-acquired return fails
+ok - home seeding leaves unsafe acquired active homes untouched
+ok - home seeding rolls back failed clone attempts without residue
+ok - home seeding refuses direct seed without filled charter text
+ok - home seeding refuses unfilled placeholder charters
+ok - home seeding refuses empty normalized charter fields
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding scaffolds, registers, and spawns a project-less home end to end
+ok - secondmate spawn resolves home validation and projects from punctuated registry fields
+ok - secondmate spawn refuses ambiguous, supplied-home, and metadata-home registry bindings
+ok - home seeding validates reused project-less charters before mutation
+ok - home seeding refuses project-less conversion of a populated home
+ok - home seeding refuses project-less homes whose projects directory cannot be inspected
+ok - home seeding refuses project-less homes with symlinked projects directories
+ok - home seeding refuses project-less homes with non-directory projects paths
+ok - home seeding refuses project-less homes whose project registry cannot be inspected
+ok - home seeding fails loudly on accidental project omission and rejects mixed --no-projects
+ok - home seeding refuses local-only projects
+ok - home seeding refuses registry delimiter home paths
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses active home and repo root
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses homes marked for another id
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses homes registered to another id
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses same-id reassignment to a different home
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses registered home overlaps
+ok - remote-backed subhome seeding requires a source origin
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - remote-backed subhome seeding validates existing destination origins
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding resolves relative source origins against the source project
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding skips initialized existing no-mistakes clones
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses uninitialized existing no-mistakes clones
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses project destinations outside the subhome
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses operational directories outside the subhome
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home seeding refuses symlinked and non-regular leaf files
+Hinweis: Wechsle zu '17210fd80e66dc4f89ef532d56701a1ccbf70b68'.
+
+Sie befinden sich im Zustand eines 'losgelösten HEAD'. Sie können sich
+umschauen, experimentelle Änderungen vornehmen und diese committen, und
+Sie können alle möglichen Commits, die Sie in diesem Zustand machen,
+ohne Auswirkungen auf irgendeinen Branch verwerfen, indem Sie zu einem
+anderen Branch wechseln.
+
+Wenn Sie einen neuen Branch erstellen möchten, um Ihre erstellten Commits
+zu behalten, können Sie das (jetzt oder später) durch Nutzung von
+'switch' mit der Option -c tun. Beispiel:
+
+  git switch -c <neuer-Branchname>
+
+Oder um diese Operation rückgängig zu machen:
+  git switch -
+
+Sie können diesen Hinweis ausschalten, indem Sie die Konfigurationsvariable
+'advice.detachedHead' auf 'false' setzen.
+
+ok - home reseeding preserves and enforces the durable parent binding
+ok - secondmate spawn validates homes before launch
+ok - secondmate spawn refuses operational directories outside the subhome
+ok - fm-send refuses a bare firstmate window with no metadata in this home
+ok - secondmate teardown retires empty homes and releases routing
+ok - secondmate teardown refuses ambiguous and identity-mismatched registry bindings
+ok - normal secondmate teardown sweeps process events before removal
+ok - secondmate teardown preserves state when process-event sweeping is unavailable
+ok - later teardown refusals preserve active process-event sources
+ok - force teardown sweeps nested secondmate homes before deletion
+ok - force teardown preserves nested process-event restoration status and recovery state
+ok - secondmate teardown refuses to hide failed leased-home return
+ok - secondmate teardown raw-removes plain-clone homes
+ok - secondmate force teardown discards child work
+ok - forced secondmate teardown refuses duplicated descendant pool slots
+ok - secondmate force teardown preserves child worktree after unproven lock refusal
+ok - force teardown allows non-state operational directory symlinks inside the subhome
+ok - force teardown refuses operational directory symlinks outside the subhome
+ok - secondmate teardown refuses homes containing registered nested homes
+ok - secondmate teardown refuses nested homes from the child registry
+ok - force teardown validates subhome before child cleanup
+ok - forced teardown refuses a non-directory descendant state path
+ok - forced teardown refuses a symlinked descendant state path
+ok - forced teardown locks a descendant whose state directory was absent
+ok - forced teardown refuses while a fresh task is being published in the home
+ok - a fresh spawn refuses to publish while a forced teardown owns the task set
+ok - a fresh remote secondmate spawn refuses while the task set is owned
+ok - force teardown refuses child worktrees inside the active home
+ok - force teardown refuses child worktrees inside the firstmate repo
+ok - force teardown refuses unregistered child worktree paths
+ok - secondmate teardown path-boundary matrix refuses unmarked/ancestor/active-descendant/repo-descendant homes
+ok - idle kind=secondmate pane is healthy and not stale
+ok - secondmate charter brief is idle by default and does not self-initiate work
+ok - fm-backlog-handoff aborts atomically on unmatched, in-flight, and unregistered targets
+ok - fm-backlog-handoff refuses Done items under whitespace section headings and unsafe homes
+FM_TEST_END 2026-09-11T14:59:19Z tests/fm-secondmate-safety.test.sh exit=0 duration_ms=94651 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T14:59:19Z tests/fm-session-start.test.sh family=session-bootstrap expected_gate_skip=none
+ok - context digest distinguishes ABSENT, empty-but-present, and populated files
+ok - a lock refusal prints a loud read-only banner, skips every mutating step, and still completes the digest
+ok - session start stays read-only when lock ownership cannot be published
+ok - locked session start freezes trace context and lock refusal leaves it unchanged
+ok - concurrent session-lock acquisition admits exactly one live harness
+ok - digest sections are ordered safety-preamble first, live fleet state before curated memory
+ok - the read-once contract is stated once, ahead of the sources it governs
+ok - session start: configured and auto-detected Herdr homes never require tmux
+ok - session start: an absent recorded tmux window relaunches its Pi secondmate exactly once, off the blocking path
+ok - session start: a deferred relaunch is always reported, so the digest's stale endpoint record cannot stand
+ok - session start: inactive reconciliation runs after the digest and retains its durable wake
+ok - session start: an unreachable host delays a reported check, not the digest
+ok - session start: a deferred result the digest outran still reaches the agent as a wake
+ok - session start: a read-only session declares its skipped network checks rather than dropping them
+ok - session start: the tasks-axi compatibility verdict is computed once and reused
+ok - session start: an existing ambiguous Pi process prevents duplicate recovery
+ok - session start: transient tmux unreadability never licenses a relaunch
+ok - session start: the proven bare-shell recovery path remains intact
+ok - session start: a confirmed Herdr husk is closed and relaunched
+ok - status tail is bounded to the configured line count, with the full log path always printed
+ok - status tail lines are capped with a truncation marker while the full log stays reachable
+ok - orphan status logs are printed once with bounded tails
+ok - tmux endpoint liveness is reported per task: alive for a live window, dead for a gone one
+ok - herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one
+ok - fm-session-start.sh composes the real fm-lock.sh, fm-bootstrap.sh, and fm-wake-drain.sh output verbatim
+ok - locked Pi session start replays leading routine outcomes, preserves the captain barrier, and sweeps only dead leases
+ok - non-Pi session start neither sweeps nor replays Pi branch state
+ok - compatible tasks-axi backlog rendering drops done rows and keeps every in-flight, held, and blocked row
+ok - the startup backlog bound cuts only dispatchable queued rows and discloses the remainder exactly
+ok - manual backlog rendering drops done rows, keeps every held or blocked title line, and bounds the rest
+ok - unavailable or incompatible tasks-axi falls back to compact manual backlog rendering
+ok - an empty fleet reports (none) for in-flight tasks and an absent AFK flag
+ok - session start emits X-mode cadence guidance in the harness supervision block
+ok - next step delegates watcher ownership to the AFK daemon
+ok - session start emits exactly one detected harness block and reports Pi extension load state
+ok - session start preserves pi-signed primary identity while applying Pi extension guarantees
+ok - session start rejects stale Pi loaded markers
+ok - session start accepts current Pi markers written before lock acquisition
+ok - session start emits the omp block and reports omp extension load state
+ok - session start accepts current omp markers written before lock acquisition
+ok - session start rejects Pi sessions missing the turn-end guard marker
+ok - session start rejects Pi loaded markers from previous sessions
+ok - the pure-Bash watchdog bounds session start, kills its hung grandchild, and emits the truncation contract
+ok - the portable timeout path force-kills a command that ignores TERM
+ok - a session start inside its budget prints no truncation banner
+ok - the runtime bound leaves enough ancestry headroom for a deeply nested session to take the lock
+ok - --reemit reprints the digest without repeating startup's mutating sweeps and still drains queued wakes
+ok - true-start AGENTS baselines stay immutable while every drifted Pi compact re-emits the current contract
+ok - read-only Pi compact refreshes against the rebuilding session identity without mutation
+ok - Codex reset sources do not claim an unavailable instruction-refresh channel
+ok - instruction baselines require SHA-256 and successful startup completion
+ok - --reemit re-verifies lock ownership and keeps repair ownership with whoever holds it
+# fm-session-start.test.sh: all assertions passed
+FM_TEST_END 2026-09-11T15:04:32Z tests/fm-session-start.test.sh exit=0 duration_ms=313032 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T15:04:32Z tests/fm-sessionstart-nudge.test.sh family=session-bootstrap expected_gate_skip=none
+ok - fm-sessionstart-nudge: a genuine primary gets one explicitly marked instruction line
+ok - fm-sessionstart-nudge: NO_MISTAKES_GATE is silent
+ok - fm-sessionstart-nudge: .no-mistakes gate common-dir is silent
+ok - fm-sessionstart-nudge: an unmarked linked task worktree is silent
+ok - fm-sessionstart-nudge: a marked linked secondmate home is a primary
+ok - fm-sessionstart-nudge: a checkout without state is silent
+ok - fm-sessionstart-nudge: a lock holder in process ancestry is already run
+ok - OpenCode session.created delivers the exact wrapper nudge once per session
+ok - run wrapper: startup runs the full digest and never also nudges
+ok - run wrapper: clear and compact re-emit the digest without repeating startup sweeps
+ok - run wrapper forwards only stale-cache rebuild sources to immutable-baseline instruction refresh
+ok - run wrapper refreshes a compact even when startup completion is unproven
+ok - run wrapper: clear falls back to full startup when completion is unproven
+ok - run wrapper: clear accepts completion only from the current harness
+ok - run wrapper: resume delegates to the nudge instead of re-running the digest
+ok - run wrapper: the hook payload's source field drives routing with no explicit argument
+ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it
+ok - run wrapper: ordinary ineligible opens stay silent-zero and Pi preflight gets an explicit silent stand-down
+ok - run wrapper: a session start that cannot take the lock still opens the session and says so
+ok - Pi distinguishes header-proven restored CLI sessions from named create-if-missing startups
+ok - Pi provider preflight owns one generation-bound startup prerequisite with deterministic fallback, replacement, cancellation, timeout, and truncation
+ok - Pi reload shutdown releases its exit listener and stale startup generation
+ok - Pi retains a bounded digest prefix and loudly marks oversized preflight delivery
+FM_TEST_END 2026-09-11T15:06:16Z tests/fm-sessionstart-nudge.test.sh exit=0 duration_ms=103973 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T15:06:16Z tests/fm-shared-captain-inheritance.test.sh family=secondmate expected_gate_skip=none
+ok - shared captain first copy converges, is read-only, and preserves local captain/learnings files
+ok - shared captain drift is quarantined collision-safely and repeated convergence is idempotent
+ok - missing primary shared file mirrors absence only after quarantining a local copy
+ok - unsafe shared captain artifacts are rejected and failure restores read-only mode
+ok - spawn convergence point propagates data/captain-shared.md from FM_DATA_OVERRIDE
+ok - bootstrap convergence point propagates data/captain-shared.md from FM_DATA_OVERRIDE
+ok - fm-config-push convergence point updates changed shared captain source bytes from FM_DATA_OVERRIDE
+ok - session-start digest renders data/captain-shared.md with the shared read-only label
+# all fm-shared-captain-inheritance tests passed
+FM_TEST_END 2026-09-11T15:06:27Z tests/fm-shared-captain-inheritance.test.sh exit=0 duration_ms=10679 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T15:06:27Z tests/fm-startup-network.test.sh family=session-bootstrap expected_gate_skip=none
+ok - fm-startup-network: wait fails when no deferred stage publishes before its deadline
+ok - fm-startup-network: start returns immediately and never holds the caller's stdout open
+ok - fm-startup-network: exactly one of the digest and the wake reports each actionable result
+ok - fm-startup-network: a claimant crash after publication still surfaces the result
+ok - fm-startup-network: a report-publication failure is failed, diagnosed, and still wakes
+ok - fm-startup-network: silent and explicitly informational successes never queue a main-blocking wake
+ok - fm-startup-network: an actionable state=done report still queues a wake
+ok - fm-startup-network: deferred invalid secondmate markers produce durable wakes
+ok - fm-startup-network: manual callers cannot forge mutation authority
+ok - fm-startup-network: an aggregate bound turns a wedged sweep into an actionable line
+ok - fm-startup-network: an abandoned run reports as needing a rerun, never as in progress forever
+ok - fm-startup-network: locked requests supersede in-flight probe-only workers
+ok - fm-startup-network: a second start never launches a competing worker
+ok - fm-startup-network: start atomically reserves the generation harvest observes
+ok - fm-startup-network: a new lock owner gets a distinct worker generation
+ok - fm-startup-network: fleet-lock takeover cannot overlap a mutating sweep
+ok - fm-startup-network: timing records share one origin so their offsets form a timeline
+ok - fm-startup-network: timings are durable and printed only on demand
+ok - fm-startup-network: a timed-out run still publishes the partial timings it recorded
+ok - fm-startup-network: the timing artifact cannot carry a command line or forge records
+# fm-startup-network.test.sh: all assertions passed
+FM_TEST_END 2026-09-11T15:07:56Z tests/fm-startup-network.test.sh exit=0 duration_ms=89015 gate_skip=false
+FM_TEST_BEGIN 2026-09-11T15:07:56Z tests/fm-trace-context-spawn.test.sh family=backend-dispatch expected_gate_skip=none
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+ok - duplicate secondmate preflight leaves trace-context unchanged
+ok - relaunch reuses the recorded carrier verbatim for both the meta record and the injected export
+ok - session start freezes the env override and later config or environment edits do not alter spawns
+ok - two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace
+ok - two-level: env-off/file-present keeps the nested worker disabled even though the config file was copied into the secondmate home
+ok - two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, and keep per-task identity across relaunch
+ok - secondmate carrier and FM_TRACE_CONTEXT snapshot always agree, both derived from one frozen decision (file-decided path)
+# all fm-trace-context-spawn tests passed
+FM_TEST_END 2026-09-11T15:10:31Z tests/fm-trace-context-spawn.test.sh exit=0 duration_ms=155012 gate_skip=false
+FM_TEST_SUMMARY total=7 failed=0 skipped_gate=0 duration_ms=858372
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=155012 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=2 duration_ms=105330 failed=0
+FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=3 duration_ms=506020 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=91540 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-session-start.test.sh duration_ms=313032
+FM_TEST_SLOWEST rank=2 script=tests/fm-trace-context-spawn.test.sh duration_ms=155012
+FM_TEST_SLOWEST rank=3 script=tests/fm-sessionstart-nudge.test.sh duration_ms=103973
+FM_TEST_SLOWEST rank=4 script=tests/fm-secondmate-safety.test.sh duration_ms=94651
+FM_TEST_SLOWEST rank=5 script=tests/fm-daemon.test.sh duration_ms=91540
+FM_TEST_SLOWEST rank=6 script=tests/fm-startup-network.test.sh duration_ms=89015
+FM_TEST_SLOWEST rank=7 script=tests/fm-shared-captain-inheritance.test.sh duration_ms=10679
+exit=0

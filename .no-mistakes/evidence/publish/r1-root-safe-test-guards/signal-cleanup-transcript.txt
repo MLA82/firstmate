@@ -1,0 +1,18 @@
+=== BEFORE (d7c10c1: in-process FM_TEST_BLOCKED_DIRS) ===
+lib.sh under test: /tmp/fm-cmp-d7c10c1/tests/lib.sh (uid 2008)
+fixture root: /tmp/fm-sigrepro-fixture.lYlluU
+state dir mode while blocked: 555
+rm: das Entfernen von '/tmp/fm-sigrepro-fixture.lYlluU/home/state/entry' ist nicht möglich: Keine Berechtigung
+test process exit after group TERM: 143
+RESULT: fixture root LEFT BEHIND after cleanup:
+  drwx------ /tmp/fm-sigrepro-fixture.lYlluU
+  drwxr-xr-x /tmp/fm-sigrepro-fixture.lYlluU/home
+  dr-xr-xr-x /tmp/fm-sigrepro-fixture.lYlluU/home/state
+  -rw-r--r-- /tmp/fm-sigrepro-fixture.lYlluU/home/state/entry
+
+=== AFTER (HEAD 17210fd: fm_test_remove_tree sweep) ===
+lib.sh under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28DPZ7CXAHVT2NBTC56S9VQ/tests/lib.sh (uid 2008)
+fixture root: /tmp/fm-sigrepro-fixture.5sWMej
+state dir mode while blocked: 555
+test process exit after group TERM: 143
+RESULT: fixture root removed by fm_test_cleanup

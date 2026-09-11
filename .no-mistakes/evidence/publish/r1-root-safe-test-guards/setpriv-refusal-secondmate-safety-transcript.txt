@@ -1,0 +1,14 @@
+=== d337c52 - tests/fm-secondmate-safety.test.sh on root runner without CAP_SETPCAP ===
+ok - fm-lock status is scoped per home
+fatal: Repository »/tmp/fm-cmp-d337c52« existiert nicht
+error: /tmp/fm-secondmate-safety.mwJBQb/overlap-design is not a firstmate home (missing AGENTS.md)
+not ok - initial seed failed
+test file exit: 1
+
+=== HEAD 17210fd - tests/fm-secondmate-safety.test.sh on root runner without CAP_SETPCAP ===
+ok - seed allows overlapping project clone lists and drops the owns/owner routing
+ok - home-seed validation rejects registry records no operational parser can consume
+ok - home seeding refuses broken registry symlinks before provisioning
+not ok - fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run env with root's permission bypass
+test file exit: 1
+

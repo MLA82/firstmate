@@ -1,0 +1,14 @@
+=== HEAD 17210fd (root-safe guards) - simulated root runner (unshare -r, full caps) ===
+runner: uid 0; CapEff: 000001ffffffffff
+--- tests/fm-shared-captain-inheritance.test.sh ---
+ok - bootstrap convergence point propagates data/captain-shared.md from FM_DATA_OVERRIDE
+ok - fm-config-push convergence point updates changed shared captain source bytes from FM_DATA_OVERRIDE
+ok - session-start digest renders data/captain-shared.md with the shared read-only label
+ok lines: 8  not-ok lines: 0
+test file exit: 0
+--- tests/fm-secondmate-safety.test.sh ---
+ok - secondmate charter brief is idle by default and does not self-initiate work
+ok - fm-backlog-handoff aborts atomically on unmatched, in-flight, and unregistered targets
+ok - fm-backlog-handoff refuses Done items under whitespace section headings and unsafe homes
+ok lines: 77  not-ok lines: 0
+test file exit: 0

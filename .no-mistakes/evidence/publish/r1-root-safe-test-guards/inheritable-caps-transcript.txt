@@ -1,0 +1,15 @@
+=== BEFORE (d7c10c1: bounding-set-only drop) ===
+lib.sh under test: /tmp/fm-cmp-d7c10c1/tests/lib.sh
+runner: uid 0; CapInh: 0000000000000006
+plain bounding-set-only drop: write into a-w dir SUCCEEDED (root regained the caps from the inheritable set)
+fm_run_dir_readonly: cannot verify a write-block for root on /tmp/fm-inhprobe.HhcOIq/d; refusing to run bash unprotected
+fm_run_dir_readonly write attempt: rc=97; file created: no
+RESULT: helper refused (97) - drop cannot be proven on this runner, protection unavailable
+
+=== AFTER (HEAD 17210fd: bounding + inheritable drop) ===
+lib.sh under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M28DPZ7CXAHVT2NBTC56S9VQ/tests/lib.sh
+runner: uid 0; CapInh: 0000000000000006
+plain bounding-set-only drop: write into a-w dir SUCCEEDED (root regained the caps from the inheritable set)
+_: Zeile 1: /tmp/fm-inhprobe.uBH6uL/d/via-helper: Keine Berechtigung
+fm_run_dir_readonly write attempt: rc=1; file created: no
+RESULT: write denied under the helper - drop holds on this runner

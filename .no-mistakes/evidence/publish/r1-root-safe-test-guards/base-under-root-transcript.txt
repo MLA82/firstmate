@@ -1,0 +1,9 @@
+=== BASE 869ae90 (plain chmod guards) - simulated root runner (unshare -r, full caps) ===
+--- tests/fm-shared-captain-inheritance.test.sh ---
+not ok - ordinary write unexpectedly succeeded for read-only shared captain file
+test file exit: 1
+--- tests/fm-secondmate-safety.test.sh ---
+ok - home-seed validation rejects registry records no operational parser can consume
+ok - home seeding refuses broken registry symlinks before provisioning
+not ok - home-seed validation accepted an unreadable registry
+test file exit: 1

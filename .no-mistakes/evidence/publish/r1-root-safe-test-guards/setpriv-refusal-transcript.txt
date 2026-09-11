@@ -1,0 +1,10 @@
+=== d337c52 - root runner without CAP_SETPCAP (setpriv cannot drop caps) ===
+runner: uid 0; CapBnd: 000001fffffffeff
+not ok - fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run bash with root's permission bypass
+test file exit: 1
+
+=== HEAD 17210fd - root runner without CAP_SETPCAP (setpriv cannot drop caps) ===
+runner: uid 0; CapBnd: 000001fffffffeff
+not ok - fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run bash with root's permission bypass
+test file exit: 1
+
