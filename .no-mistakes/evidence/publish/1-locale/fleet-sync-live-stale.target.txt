@@ -1,0 +1,12 @@
+### case=stale root=/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M26WQGNENK3KX04JA6E7CEH7 shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=1d53b5a origin/main=e18b5db lock_present=yes
+### exit=0
+### stdout:
+  demo: recovered: removed a stale packed-refs lock (no live holder)
+  demo: synced 1d53b5a..e18b5db
+### stderr:
+  demo: fetch blocked by packed-refs lock (/tmp/fleet-live.9Npg/home/projects/demo/.git/packed-refs.lock); waiting 0s and retrying (1/2) (owning process may be exiting)
+  demo: fetch blocked by packed-refs lock (/tmp/fleet-live.9Npg/home/projects/demo/.git/packed-refs.lock); waiting 0s and retrying (2/2) (owning process may be exiting)
+  demo: removed provably-stale packed-refs lock /tmp/fleet-live.9Npg/home/projects/demo/.git/packed-refs.lock (age >= 60s, no live holder) and retrying fetch
+  demo: fetch succeeded after stale packed-refs lock cleanup
+### after: clone HEAD=e18b5db fast_forwarded=yes lock_present=no origin/feature_pruned=yes

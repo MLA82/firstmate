@@ -1,0 +1,7 @@
+### case=live-holder root=/tmp/locale-base.tpLN shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=f0a3606 origin/main=183ba6b lock_present=yes
+### exit=0
+### stdout:
+  demo: skipped: fetch failed: error: konnte Referenz refs/remotes/origin/feature nicht entfernen: Konnte '/tmp/fleet-live.saja/home/projects/demo/.git/packed-refs.lock' nicht erstellen: Die Datei existiert bereits.
+### stderr:
+### after: clone HEAD=f0a3606 fast_forwarded=no lock_present=yes origin/feature_pruned=no

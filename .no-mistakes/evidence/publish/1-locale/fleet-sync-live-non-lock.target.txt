@@ -1,0 +1,7 @@
+### case=non-lock root=/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M26WQGNENK3KX04JA6E7CEH7 shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=61743d0 origin/main=51d5386 lock_present=no
+### exit=0
+### stdout:
+  demo: skipped: fetch failed: fatal: '/tmp/fleet-live.2xeF/does-not-exist.git' does not appear to be a git repository
+### stderr:
+### after: clone HEAD=61743d0 fast_forwarded=no lock_present=no origin/feature_pruned=no

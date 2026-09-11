@@ -1,0 +1,7 @@
+### case=stale root=/tmp/locale-base.tpLN shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=2f3fb6b origin/main=c8530a9 lock_present=yes
+### exit=0
+### stdout:
+  demo: skipped: fetch failed: error: konnte Referenz refs/remotes/origin/feature nicht entfernen: Konnte '/tmp/fleet-live.2j2Q/home/projects/demo/.git/packed-refs.lock' nicht erstellen: Die Datei existiert bereits.
+### stderr:
+### after: clone HEAD=2f3fb6b fast_forwarded=no lock_present=yes origin/feature_pruned=no

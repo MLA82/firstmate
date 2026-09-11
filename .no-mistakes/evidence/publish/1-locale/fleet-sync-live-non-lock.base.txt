@@ -1,0 +1,7 @@
+### case=non-lock root=/tmp/locale-base.tpLN shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=61743d0 origin/main=34ae26a lock_present=no
+### exit=0
+### stdout:
+  demo: skipped: fetch failed: fatal: '/tmp/fleet-live.MOFx/does-not-exist.git' does not appear to be a git repository
+### stderr:
+### after: clone HEAD=61743d0 fast_forwarded=no lock_present=no origin/feature_pruned=no

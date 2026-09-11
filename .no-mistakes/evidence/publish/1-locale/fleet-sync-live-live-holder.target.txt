@@ -1,0 +1,10 @@
+### case=live-holder root=/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M26WQGNENK3KX04JA6E7CEH7 shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=ceb72e2 origin/main=8e33ea3 lock_present=yes
+### exit=0
+### stdout:
+  demo: skipped: fetch failed: error: could not delete reference refs/remotes/origin/feature: Unable to create '/tmp/fleet-live.C1mB/home/projects/demo/.git/packed-refs.lock': File exists.
+### stderr:
+  demo: fetch blocked by packed-refs lock (/tmp/fleet-live.C1mB/home/projects/demo/.git/packed-refs.lock); waiting 0s and retrying (1/2) (owning process may be exiting)
+  demo: fetch blocked by packed-refs lock (/tmp/fleet-live.C1mB/home/projects/demo/.git/packed-refs.lock); waiting 0s and retrying (2/2) (owning process may be exiting)
+  demo: fetch blocked by packed-refs lock /tmp/fleet-live.C1mB/home/projects/demo/.git/packed-refs.lock that persisted across 2 retries and is not provably stale (may belong to a live process); leaving it in place
+### after: clone HEAD=ceb72e2 fast_forwarded=no lock_present=yes origin/feature_pruned=no

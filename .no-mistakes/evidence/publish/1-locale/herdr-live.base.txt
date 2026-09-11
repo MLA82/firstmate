@@ -1,0 +1,10 @@
+### root=/tmp/locale-base.tpLN
+### real herdr: herdr 0.9.0; lab session=fm-lab-locale-1682120 tab=w1:t2 pane=w1:p2
+### pane agent status (raw): 
+### FM_BACKEND_HERDR_SUBMIT_MIN_SLEEP=0.6 polls=6 caller budget=0.4s (expected: 0.6s floor spread as 5 x 0.12s sleeps)
+LC_ALL=C            run=1 confirm_budget=0.6000  verdict=unknown  confirmation_window_ms=1102
+LC_ALL=C            run=2 confirm_budget=0.6000  verdict=unknown  confirmation_window_ms=747
+LC_ALL=C            run=3 confirm_budget=0.6000  verdict=unknown  confirmation_window_ms=1044
+LC_ALL=de_DE.UTF-8  run=1 confirm_budget=0,6000  verdict=unknown  confirmation_window_ms=300
+LC_ALL=de_DE.UTF-8  run=2 confirm_budget=0,6000  verdict=unknown  confirmation_window_ms=484
+LC_ALL=de_DE.UTF-8  run=3 confirm_budget=0,6000  verdict=unknown  confirmation_window_ms=281

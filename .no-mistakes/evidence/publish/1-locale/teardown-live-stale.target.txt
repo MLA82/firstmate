@@ -1,0 +1,32 @@
+### case=stale root=/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M26WQGNENK3KX04JA6E7CEH7 shell: LC_ALL='' LANG=de_DE.UTF-8
+### worktree (real treehouse slot): /tmp/td-live.CpRK/pool/.treehouse/project-54ec45/1/project
+### before: index.lock present=yes age=10min live_holder=no
+### treehouse status before:
+  1     leased       /tmp/td-live.CpRK/pool/.treehouse/project-54ec45/1/project
+### exit=0
+### stdout:
+  🌳 Worktree returned to pool.
+  /tmp/td-live.CpRK/project: already current
+  teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/td-live.CpRK/pool/.treehouse/project-54ec45/1/project)
+  Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/td-live.CpRK/data/backlog.md). Update /tmp/td-live.CpRK/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+### stderr:
+  failed to return worktree: git read-tree --reset -u 8587d4284526aca2c070769de728b2160034c650: fatal: Unable to create '/tmp/td-live.CpRK/project/.git/worktrees/project/index.lock': File exists.
+  
+  Another git process seems to be running in this repository, e.g.
+  an editor opened by 'git commit'. Please make sure all processes
+  are terminated then try again. If it still fails, a git process
+  may have crashed in this repository earlier:
+  remove the file manually to continue.
+  teardown: worktree return failed with transient git lock (/tmp/td-live.CpRK/project/.git/worktrees/project/index.lock); waiting 0s and retrying (1/1)
+  failed to return worktree: git read-tree --reset -u 8587d4284526aca2c070769de728b2160034c650: fatal: Unable to create '/tmp/td-live.CpRK/project/.git/worktrees/project/index.lock': File exists.
+  
+  Another git process seems to be running in this repository, e.g.
+  an editor opened by 'git commit'. Please make sure all processes
+  are terminated then try again. If it still fails, a git process
+  may have crashed in this repository earlier:
+  remove the file manually to continue.
+  teardown: removed provably-stale git lock /tmp/td-live.CpRK/project/.git/worktrees/project/index.lock (age >= 60s, no live holder) and retrying worktree return
+  teardown: worktree return succeeded after stale-lock cleanup
+### after: index.lock present=no meta_present=no
+### treehouse status after:
+  1     available    /tmp/td-live.CpRK/pool/.treehouse/project-54ec45/1/project

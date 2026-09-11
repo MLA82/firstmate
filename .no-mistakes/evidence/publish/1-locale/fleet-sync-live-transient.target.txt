@@ -1,0 +1,10 @@
+### case=transient root=/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M26WQGNENK3KX04JA6E7CEH7 shell: LC_ALL='' LANG=de_DE.UTF-8
+### before: clone HEAD=b3c257a origin/main=3826c4b lock_present=yes
+### exit=0
+### stdout:
+  demo: recovered: packed-refs lock cleared on its own during retry
+  demo: synced b3c257a..3826c4b
+### stderr:
+  demo: fetch blocked by packed-refs lock (/tmp/fleet-live.XJAZ/home/projects/demo/.git/packed-refs.lock); waiting 2s and retrying (1/2) (owning process may be exiting)
+  demo: fetch succeeded on retry; packed-refs lock cleared on its own
+### after: clone HEAD=3826c4b fast_forwarded=yes lock_present=no origin/feature_pruned=yes
