@@ -717,7 +717,11 @@ test_home_seed_refuses_projectless_home_with_uninspectable_projects() {
   fm_git_init_commit "$sub/projects/hidden-clone"
   chmod 311 "$sub/projects"
 
-  if FM_HOME="$home" FM_SECONDMATE_CHARTER='firstmate self-development' \
+  # A root reader (a CI runner running as root) lists straight past mode 311
+  # via CAP_DAC_READ_SEARCH; fm_run_without_dac_override drops it so
+  # fm-home-seed.sh's inspection is checked against the mode bits like anyone
+  # else.
+  if fm_run_without_dac_override env FM_HOME="$home" FM_SECONDMATE_CHARTER='firstmate self-development' \
     FM_SECONDMATE_SCOPE='firstmate repo work' \
     "$ROOT/bin/fm-home-seed.sh" fdev "$sub" --no-projects >/dev/null 2>"$err"; then
     chmod 700 "$sub/projects"
