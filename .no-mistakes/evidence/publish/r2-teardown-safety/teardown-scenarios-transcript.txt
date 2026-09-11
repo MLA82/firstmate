@@ -1,0 +1,110 @@
+
+==================== S1a missing treehouse binary preserves Claude hook - HEAD (fixed) ====================
+script under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M276FCJKMVV160YFQ47CQ4M3/bin/fm-teardown.sh
+treehouse on teardown PATH: <none>
+hook before teardown: PRESENT
+teardown exit code: 0
+--- teardown stderr (tail) ---
+--- after ---
+hook file (.claude/settings.local.json): PRESENT
+task meta: ABSENT
+
+==================== S1b same scenario - PRE-FIX dfa1772 (reproduces the reported bug) ====================
+script under test: /tmp/fm-prefix-dfa1772/bin/fm-teardown.sh
+treehouse on teardown PATH: <none>
+hook before teardown: PRESENT
+teardown exit code: 0
+--- teardown stderr (tail) ---
+--- after ---
+hook file (.claude/settings.local.json): ABSENT
+task meta: ABSENT
+
+==================== S1c repo regression test test_claude_hook_left_when_treehouse_binary_is_missing - HEAD ====================
+ok - Claude hook is left alone when the treehouse binary is entirely missing from PATH
+
+==================== S2 adversarial: pool-slot task, treehouse binary missing - HEAD ====================
+script under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M276FCJKMVV160YFQ47CQ4M3/bin/fm-teardown.sh
+treehouse on teardown PATH: <none>
+worktree is <pool>/<slot>/<repo> with pool treehouse-state.json: PRESENT
+teardown exit code: 1
+--- teardown stderr (tail) ---
+/home/mla/.no-mistakes/worktrees/c9a671237ef3/01M276FCJKMVV160YFQ47CQ4M3/bin/fm-teardown.sh: Zeile 1635: treehouse: Befehl nicht gefunden
+error: treehouse return failed for worktree /tmp/fm-teardown-tests.uYVkpU/hook-no-treehouse-poolslot/wt; teardown aborted
+--- after ---
+pool-slot guard refused: no
+hook file (.claude/settings.local.json): PRESENT
+
+==================== S3 treehouse status errors -> hook preserved - HEAD ====================
+treehouse status: exits 1 ('internal error'); every other treehouse call succeeds
+teardown exit code: 0
+hook file (.claude/settings.local.json): PRESENT
+task meta: ABSENT
+ok - Claude hook is left alone when treehouse status itself errors (inconclusive, not not-in-use)
+
+==================== S4 slot not in use -> hook removed - HEAD ====================
+hook before teardown: PRESENT
+treehouse status: succeeds, slot not listed in-use
+teardown exit code: 0
+hook file (.claude/settings.local.json): ABSENT
+task meta: ABSENT
+ok - Claude hook is removed when treehouse does NOT report the worktree as in-use
+ok - Claude hook is left alone when treehouse reports the worktree as in-use
+
+==================== S5a non-pool worktree= refused before reap and before close marker - HEAD, treehouse present ====================
+treehouse binary: present
+live process rooted in recorded worktree before teardown: pid 1997688 alive=yes
+teardown exit code: 1 (run with --force)
+--- teardown stderr (tail) ---
+REFUSED: worktree /tmp/fm-teardown-tests.BYrZxh/non-pool-refusal-present/primary/checkout recorded for task task-x1 is not a Treehouse pool slot of project /tmp/fm-teardown-tests.BYrZxh/non-pool-refusal-present/project.
+Refusing before touching a single process: state/task-x1.meta's worktree= or project= is likely stale or wrong. Verify it against `treehouse status` before retrying.
+--- after ---
+process in recorded worktree still alive: yes
+'reaping leaked' in stderr: no
+task meta: PRESENT
+backlog-close marker (state/task-x1.backlog-close): ABSENT
+backlog row: in_flight
+
+==================== S5b same, treehouse binary missing (offline proof must still refuse) - HEAD ====================
+treehouse binary: absent
+live process rooted in recorded worktree before teardown: pid 1998559 alive=yes
+teardown exit code: 1 (run with --force)
+--- teardown stderr (tail) ---
+REFUSED: worktree /tmp/fm-teardown-tests.IwKQgZ/non-pool-refusal-absent/primary/checkout recorded for task task-x1 is not a Treehouse pool slot of project /tmp/fm-teardown-tests.IwKQgZ/non-pool-refusal-absent/project.
+Refusing before touching a single process: state/task-x1.meta's worktree= or project= is likely stale or wrong. Verify it against `treehouse status` before retrying.
+--- after ---
+process in recorded worktree still alive: yes
+'reaping leaked' in stderr: no
+task meta: PRESENT
+backlog-close marker (state/task-x1.backlog-close): ABSENT
+backlog row: in_flight
+ok - a worktree= that is not a Treehouse pool slot refuses before touching a single process, even under --force
+
+==================== S6a Orca id/path mismatch with live process - HEAD ====================
+script under test: /home/mla/.no-mistakes/worktrees/c9a671237ef3/01M276FCJKMVV160YFQ47CQ4M3/bin/fm-teardown.sh
+orca registry says wt-sm -> /tmp/fm-backend-orca-tests.GHWlZw/sm-other-wt; meta says worktree=/tmp/fm-backend-orca-tests.GHWlZw/sm-wt
+teardown exit code: 1
+--- teardown output (tail) ---
+REFUSED: Orca worktree id wt-sm resolves to /tmp/fm-backend-orca-tests.GHWlZw/sm-other-wt, not inspected worktree /tmp/fm-backend-orca-tests.GHWlZw/sm-wt.
+Cannot verify dirty or unlanded work for the worktree Orca would remove; preserving metadata.
+--- after ---
+process in recorded worktree still alive: yes
+'reaping leaked' in output: no
+task meta: PRESENT
+
+==================== S6b same scenario - BASE 4768e98 (before the Orca ordering fix) ====================
+script under test: /tmp/fm-base-4768e98/bin/fm-teardown.sh
+orca registry says wt-sm -> /tmp/fm-backend-orca-tests.1F2dT5/sm-other-wt; meta says worktree=/tmp/fm-backend-orca-tests.1F2dT5/sm-wt
+teardown exit code: 1
+--- teardown output (tail) ---
+teardown: reaping leaked worktree process(es) for orcasleepmismatchbase: 2003574
+REFUSED: Orca worktree id wt-sm resolves to /tmp/fm-backend-orca-tests.1F2dT5/sm-other-wt, not inspected worktree /tmp/fm-backend-orca-tests.1F2dT5/sm-wt.
+Cannot verify dirty or unlanded work for the worktree Orca would remove; preserving metadata.
+--- after ---
+process in recorded worktree still alive: NO-KILLED
+'reaping leaked' in output: YES
+task meta: PRESENT
+
+==================== S7 Orca worktree outside any treehouse pool still tears down - HEAD ====================
+ok - fm-teardown.sh backend=orca: teardown succeeds even when the worktree is outside a Treehouse pool
+ok - fm-teardown.sh backend=orca: scout teardown refuses id/path mismatches
+ok - fm-teardown.sh backend=orca: scout report gate then helper-backed worktree removal
