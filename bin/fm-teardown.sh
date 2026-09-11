@@ -1200,30 +1200,26 @@ remove_kimi_turnend_auth() {
 
 # remove_claude_hook_file <hook_path> <expected_state_dir> <task_id> <worktree> <project_dir>
 # Safely remove a per-task Claude hook file written by fm-spawn.sh into a
-# worktree's .claude/settings.local.json. Uses jq to extract the state directory
-# path embedded in the hook's command strings, verifies the task's meta file
-# exists in that state directory (proving the hook belongs to a task in that
-# home), checks treehouse status for in-use worktrees, and only removes when
-# all checks pass. Does NOT remove the file if any check fails or is inconclusive.
-# A --secondmate spawn writes NO per-task hooks; any hook file in a secondmate
-# home's worktree is leftover garbage from an earlier crewmate task and is only
-# removed under the same safety checks.
+# worktree's .claude/settings.local.json. Uses jq to extract the hook's command
+# strings and requires the exact Stop touch fm-spawn.sh writes for this task,
+# `touch <shell_quote "$STATE_REAL/$ID.turn-ended">`, resolved against this
+# home's canonical state directory (proving the hook belongs to this task in
+# this home), checks treehouse status for in-use worktrees, and only removes
+# when all checks pass. Does NOT remove the file if any check fails or is
+# inconclusive. A --secondmate spawn writes NO per-task hooks; any hook file in
+# a secondmate home's worktree is leftover garbage from an earlier crewmate
+# task and is only removed under the same safety checks.
 remove_claude_hook_file() {  # <hook_path> <expected_state_dir> <id> <wt> <proj>
   local hook_file=$1 expected_state_dir=$2 id=$3 wt=$4 proj=$5
   [ -f "$hook_file" ] || return 0
   # Extract command strings via jq (fleet-wide dependency; fm-spawn.sh's
   # json_escape() only escapes backslash and double-quote).
-  local commands state_ref
+  local commands real_state turnend_touch
   commands=$(jq -r '.. | .command? // empty' "$hook_file" 2>/dev/null) || return 0
   [ -n "$commands" ] || return 0
-  # Find the state directory path referenced in the commands (longest match).
-  state_ref=$(printf '%s\n' "$commands" | grep -oE '[^ ]+/state' | sort -r | head -1) || return 0
-  [ -n "$state_ref" ] || return 0
-  # The hook must reference this home's state directory.
-  [ "$state_ref" = "$expected_state_dir" ] || return 0
-  # Verify the meta file for this task exists in the referenced state directory.
-  local meta_path="${state_ref}/${id}.meta"
-  [ -f "$meta_path" ] || return 0
+  real_state=$(cd "$expected_state_dir" 2>/dev/null && pwd -P) || return 0
+  turnend_touch="touch '$(printf '%s' "$real_state/$id.turn-ended" | sed "s/'/'\\\\''/g")'"
+  printf '%s\n' "$commands" | grep -Fq -- "$turnend_touch" || return 0
   # Check treehouse status: refuse if worktree is in-use. A missing
   # treehouse binary must not skip this check - worktree_is_in_use itself
   # fails closed toward "in use" when `treehouse status` cannot run at all.

@@ -3765,20 +3765,20 @@ test_worktree_not_a_pool_slot_refuses_before_reaping_anything() {
 # --- Claude hook cleanup tests ---
 #
 # fm-spawn.sh writes per-task Claude hooks into a worktree's .claude/settings.local.json
-# with command strings that embed the owning home's state directory path. On teardown,
-# fm-teardown.sh must safely remove these hooks using the state directory embedded in
-# the hook file itself, verifying the task's meta file exists in that directory and
-# that the worktree is not in-use (via treehouse status). Blind removal is replaced
-# with safety-checked removal.
+# with command strings that embed the owning home's canonical state directory path,
+# each path shell-quoted. On teardown, fm-teardown.sh must safely remove these hooks
+# only when the hook's own Stop touch names this task's turn-ended file in this home's
+# state directory, and the worktree is not in-use (via treehouse status). Blind
+# removal is replaced with safety-checked removal.
 
-# Write a Claude hook file into a worktree. Args: case_dir
+# Write a Claude hook file into a worktree in fm-spawn.sh's exact format:
+# shell-quoted paths under the canonical (pwd -P) state directory. Args: case_dir
 add_claude_hook() {  # <case_dir>
-  local case_dir=$1
+  local case_dir=$1 state_real
   mkdir -p "$case_dir/wt/.claude"
-  # The state directory is the case_dir's state/ (matching the meta file's state).
-  # Commands contain absolute paths to the state directory.
+  state_real=$(cd "$case_dir/state" && pwd -P)
   cat > "$case_dir/wt/.claude/settings.local.json" <<EOF
-{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"touch $case_dir/state/task-x1.turn-ended; $case_dir/bin/fm-busy-event.sh apply $case_dir/state task-x1 busy --gen abc123 --source claude-hook --event user-prompt-submit 2>/dev/null || true"}]}],"Stop":[{"hooks":[{"type":"command","command":"touch $case_dir/state/task-x1.turn-ended; $case_dir/bin/fm-busy-event.sh idle task-x1 stop --gen abc123 --source claude-hook --event stop 2>/dev/null || true"}]}]}}
+{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"'$case_dir/bin/fm-busy-event.sh' apply '$state_real' 'task-x1' busy --gen 'abc123' --source claude-hook --event user-prompt-submit 2>/dev/null || true"}]}],"Stop":[{"hooks":[{"type":"command","command":"touch '$state_real/task-x1.turn-ended'; '$case_dir/bin/fm-busy-event.sh' apply '$state_real' 'task-x1' idle --gen 'abc123' --source claude-hook --event stop 2>/dev/null || true"}]}]}}
 EOF
 }
 
@@ -3822,7 +3822,7 @@ test_claude_hook_left_when_referenced_state_dir_is_wrong() {
   # Write a hook file that references a DIFFERENT state directory than the meta file.
   mkdir -p "$case_dir/wt/.claude" "$case_dir/other_state"
   cat > "$case_dir/wt/.claude/settings.local.json" <<EOF
-{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"touch $case_dir/other_state/task-x1.turn-ended"}]}]}}
+{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"touch '$(cd "$case_dir/other_state" && pwd -P)/task-x1.turn-ended'"}]}]}}
 EOF
   # The meta file exists in $case_dir/state but the hook references $case_dir/other_state.
   # remove_claude_hook_file should leave the hook alone because the state dir mismatch.
@@ -3836,28 +3836,6 @@ EOF
   ! grep -q REFUSED "$case_dir/stderr" || fail "hook-cleanup-wrong-state: teardown printed a REFUSED line"
   assert_hook_present "$case_dir"
   pass "Claude hook referencing a different state dir is left alone (no state dir match)"
-}
-
-test_claude_hook_left_when_no_meta_in_referenced_state() {
-  local case_dir rc
-  case_dir=$(make_case hook-cleanup-no-meta)
-  write_meta "$case_dir" local-only ship
-  wt_commit "$case_dir" "fix the thing"
-  add_fork_with_pushed_branch "$case_dir"
-  # Write a hook that references the CORRECT state dir but the meta file is missing.
-  # This simulates a stale leftover where the task's meta was already cleaned up.
-  add_claude_hook "$case_dir"
-  rm -f "$case_dir/state/task-x1.meta"
-
-  set +e
-  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
-  rc=$?
-  set -e
-
-  expect_code 1 "$rc" "hook-cleanup-no-meta: teardown should refuse (unlanded work, no meta)"
-  # The hook should be left alone because the meta file check failed.
-  assert_hook_present "$case_dir"
-  pass "Claude hook is left alone when meta file is missing in referenced state dir"
 }
 
 test_claude_hook_left_when_worktree_is_in_use() {
@@ -4081,7 +4059,6 @@ test_run_abort_precedes_process_reap_precedes_worktree_removal
 test_worktree_not_a_pool_slot_refuses_before_reaping_anything
 test_claude_hook_removed_on_normal_teardown
 test_claude_hook_left_when_referenced_state_dir_is_wrong
-test_claude_hook_left_when_no_meta_in_referenced_state
 test_claude_hook_left_when_worktree_is_in_use
 test_claude_hook_removed_when_worktree_not_in_use
 test_claude_hook_left_when_treehouse_status_is_inconclusive
