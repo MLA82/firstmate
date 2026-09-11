@@ -3,9 +3,10 @@
 # origin/<default> when safe, and prune local branches whose upstream tracking
 # branch is gone (the remote branch was deleted, i.e. its PR merged) and that no
 # worktree still needs.
-# Self-heals the one unambiguously safe drift: a clean, detached HEAD that holds
-# no unique commits (it is an ancestor of origin/<default>) and whose <default>
-# branch is free to check out is re-attached and then fast-forwarded ("recovered:").
+# Self-heals the one unambiguously safe drift: a detached HEAD with no tracked-file
+# changes that holds no unique commits (it is an ancestor of origin/<default>) and
+# whose <default> branch is free to check out is re-attached and then
+# fast-forwarded ("recovered:").
 # Every other off-default state - a non-default named branch, a detached HEAD with
 # unique commits, a tracked-file dirty tree, or a diverged default - may hold real
 # work, so it is left untouched and reported as a quantified, loud "STUCK: ... N
