@@ -95,7 +95,7 @@ This touches only the firstmate repo and its own worktrees, never anything under
 ## Safety
 
 - **Guarded convergence only.**
-  A dirty, offline, non-default, or uniquely diverged target is skipped and reported, never forced or stashed.
+  A target with tracked-file changes, offline, non-default, or uniquely diverged is skipped and reported, never forced or stashed. Untracked-only paths never block the update.
   Only a clean secondmate divergence whose complete local result is already present upstream may move without ancestry, and `reset --keep` still refuses conflicting working-tree changes.
   Nothing with unlanded work is ever discarded - this is prime directive #3.
 - **Only the firstmate repo and its worktrees** are touched, never `projects/`.
