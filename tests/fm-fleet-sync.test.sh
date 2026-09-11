@@ -617,7 +617,7 @@ test_transient_packed_refs_lock_self_clears() {
 
   # A German operator shell: the guard must still see git's English signature.
   set +e
-  LC_ALL= LANG=de_DE.UTF-8 \
+  LC_ALL='' LANG=de_DE.UTF-8 \
   GIT_FETCH_COUNTER="$counter" \
   FM_FLEET_SYNC_PACKED_REFS_LOCK_RETRIES=3 \
   FM_FLEET_SYNC_PACKED_REFS_LOCK_RETRY_WAIT_SECS=0 \

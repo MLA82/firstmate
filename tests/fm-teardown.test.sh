@@ -1751,7 +1751,7 @@ test_transient_index_lock_retry_is_locale_independent() {
   : > "$attempt_file"
 
   set +e
-  LC_ALL= LANG=de_DE.UTF-8 \
+  LC_ALL='' LANG=de_DE.UTF-8 \
   TREEHOUSE_ATTEMPT_FILE="$attempt_file" \
   FM_TREEHOUSE_RETURN_LOCK_RETRIES=2 \
   FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS=0 \
