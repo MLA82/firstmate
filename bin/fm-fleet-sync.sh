@@ -140,8 +140,8 @@ first_line() {
 # e.g. "could not delete reference ...:"). Other "File exists" errors must not match.
 # Matches git's own English text, so every fetch this guards runs under LC_ALL=C -
 # a non-English operator locale otherwise makes this recognize nothing and the
-# whole stale-lock recovery silently never fires (confirmed 2026-08-24 under
-# de_DE.UTF-8: git's fetch error localizes and this guard never matches it).
+# whole stale-lock recovery silently never fires (pinned by
+# test_transient_packed_refs_lock_self_clears in tests/fm-fleet-sync.test.sh).
 is_packed_refs_lock_error() {
   printf '%s\n' "$1" | grep -Eq "Unable to create ['\"].*packed-refs\\.lock['\"]: File exists"
 }
