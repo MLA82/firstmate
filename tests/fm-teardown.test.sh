@@ -1609,22 +1609,40 @@ test_non_linked_index_lock_path_is_checked_from_worktree() {
   add_lock_aware_treehouse "$case_dir"
   add_lsof_no_holder "$case_dir"
 
+  # git_index_lock_path resolves the same relative "<repo>/.git/index.lock" that
+  # bin/fm-teardown.sh's own worktree_git_lock_path computes for a non-linked
+  # repo (git rev-parse --git-path index.lock returns a relative path here,
+  # unlike the absolute path it returns for a linked pool-slot worktree) - a
+  # direct proof that the non-linked resolution branch is exercised.
   lock=$(git_index_lock_path "$case_dir/wt")
+  case "$lock" in
+    "$case_dir/wt/.git/index.lock") ;;
+    *) fail "non-linked-index-lock: expected a relative .git/index.lock resolution, got $lock" ;;
+  esac
   mkdir -p "$(dirname "$lock")"
   : > "$lock"
   touch -t 200001010000 "$lock"
 
+  # A plain clone is never a Treehouse pool slot (its .git is its own, not
+  # shared with $PROJ's common dir), so Fix 0 now refuses it before any
+  # worktree-safety check, lock inspection, or process is touched - by design,
+  # matching every other "not a pool slot" refusal in this file.
   set +e
   FM_STALE_WORKTREE_LOCK_RETRY_WAIT_SECS=0 FM_STALE_WORKTREE_LOCK_AGE_SECS=1 \
     run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
   rc=$?
   set -e
 
-  expect_code 0 "$rc" "non-linked-index-lock: teardown should clear a normal repo index.lock"
-  assert_grep "removed provably-stale git lock" "$case_dir/stderr" \
-    "non-linked-index-lock: teardown did not report clearing the stale lock"
-  assert_absent "$lock" "non-linked-index-lock: stale lock file should have been removed"
-  pass "normal repo index.lock is resolved from the worktree and cleared when stale"
+  expect_code 1 "$rc" "non-linked-index-lock: teardown should refuse a non-pool-slot worktree"
+  assert_grep "is not a Treehouse pool slot" "$case_dir/stderr" \
+    "non-linked-index-lock: refusal did not name the pool-slot mismatch"
+  assert_grep "nothing was changed" "$case_dir/stderr" \
+    "non-linked-index-lock: refusal did not explain its non-mutating boundary"
+  assert_present "$lock" \
+    "non-linked-index-lock: refusal should leave the untouched lock file in place"
+  assert_present "$case_dir/state/task-x1.meta" \
+    "non-linked-index-lock: refusal removed task metadata"
+  pass "a non-pool plain-clone worktree with a stale index.lock is refused before anything is touched"
 }
 
 test_index_lock_mtime_read_failure_refuses() {
@@ -2246,14 +2264,14 @@ test_herdr_flat_teardown_preflight_refuses_before_changes() {
 }
 
 configure_secondmate_with_herdr_child() {  # <case-dir>
-  local case_dir=$1 home="$1/secondmate-home"
+  local case_dir=$1 home="$1-secondmate-home"
   mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects"
   printf '%s\n' task-x1 > "$home/.fm-secondmate-home"
   printf '%s\n' "home=$home" >> "$case_dir/state/task-x1.meta"
   fm_write_meta "$home/state/child-herdr.meta" \
     "window=childsession:wC:p1" \
     "endpoint_task_id=child-herdr" \
-    "worktree=$case_dir/wt" \
+    "worktree=$case_dir-child-wt" \
     "project=$case_dir/project" \
     "kind=ship" \
     "mode=local-only" \
@@ -2300,7 +2318,7 @@ test_forced_secondmate_herdr_child_preflight_refuses_before_changes() {
   case_dir=$(make_case herdr-child-preflight)
   write_meta "$case_dir" local-only secondmate
   configure_secondmate_with_herdr_child "$case_dir"
-  home="$case_dir/secondmate-home"
+  home="$case_dir-secondmate-home"
   log="$case_dir/herdr.log"; closed="$case_dir/closed"; thlog="$case_dir/treehouse.log"
   : > "$log"; : > "$thlog"
   cat > "$case_dir/fakebin/treehouse" <<SH
@@ -2326,12 +2344,12 @@ SH
 }
 
 configure_secondmate_with_tmux_children() {  # <case-dir>
-  local case_dir=$1 home="$1/secondmate-home" child child_wt
+  local case_dir=$1 home="$1-secondmate-home" child child_wt
   mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects"
   printf '%s\n' task-x1 > "$home/.fm-secondmate-home"
   printf '%s\n' "home=$home" >> "$case_dir/state/task-x1.meta"
   for child in child-a child-b; do
-    child_wt="$case_dir/$child-wt"
+    child_wt="$case_dir-$child-wt"
     git -C "$case_dir/project" worktree add -q -b "fm/$child" "$child_wt" main
     fm_write_meta "$home/state/$child.meta" \
       "window=firstmate:fm-$child" \
@@ -2349,7 +2367,7 @@ test_forced_secondmate_teardown_holds_descendant_lifecycle_locks() {
   case_dir=$(make_case descendant-locks)
   write_meta "$case_dir" local-only secondmate
   configure_secondmate_with_tmux_children "$case_dir"
-  home="$case_dir/secondmate-home"
+  home="$case_dir-secondmate-home"
   : > "$case_dir/kill.log"
   : > "$case_dir/treehouse.log"
   cat > "$case_dir/fakebin/tmux" <<SH
@@ -2402,7 +2420,7 @@ SH
   [ -e "$case_dir/state/task-x1.meta" ] && [ -d "$home" ] \
     || { : > "$release"; wait "$holder_pid" 2>/dev/null || true; fail "descendant-locks: refusal removed parent state"; }
   for child in child-a child-b; do
-    [ -e "$home/state/$child.meta" ] && [ -d "$case_dir/$child-wt" ] \
+    [ -e "$home/state/$child.meta" ] && [ -d "$case_dir-$child-wt" ] \
       || { : > "$release"; wait "$holder_pid" 2>/dev/null || true; fail "descendant-locks: refusal removed $child state or worktree"; }
   done
 
@@ -2423,7 +2441,7 @@ test_forced_secondmate_herdr_child_retains_records_when_close_unconfirmed() {
   case_dir=$(make_case herdr-child-unconfirmed-close)
   write_meta "$case_dir" local-only secondmate
   configure_secondmate_with_herdr_child "$case_dir"
-  home="$case_dir/secondmate-home"
+  home="$case_dir-secondmate-home"
   log="$case_dir/herdr.log"; closed="$case_dir/closed"; : > "$log"
   rc=0
   FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_PRESENCE_UNKNOWN=1 \
@@ -2440,7 +2458,7 @@ test_forced_secondmate_herdr_child_retains_records_when_close_unconfirmed() {
 }
 
 configure_nested_secondmate_with_herdr_grandchild() {  # <case-dir>
-  local case_dir=$1 home="$1/secondmate-home" nested_home="$1/secondmate-home/nested-home"
+  local case_dir=$1 home="$1-secondmate-home" nested_home="$1-secondmate-home/nested-home"
   mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects"
   mkdir -p "$nested_home/state" "$nested_home/data" "$nested_home/config" "$nested_home/projects"
   printf '%s\n' task-x1 > "$home/.fm-secondmate-home"
@@ -2457,7 +2475,7 @@ configure_nested_secondmate_with_herdr_grandchild() {  # <case-dir>
   fm_write_meta "$nested_home/state/grandchild-herdr.meta" \
     "window=grandchildsession:wG:p1" \
     "endpoint_task_id=grandchild-herdr" \
-    "worktree=$case_dir/wt" \
+    "worktree=$case_dir-grandchild-wt" \
     "project=$case_dir/project" \
     "kind=ship" \
     "mode=local-only" \
@@ -2495,7 +2513,7 @@ test_forced_teardown_retains_nested_secondmate_home_when_grandchild_close_unconf
   case_dir=$(make_case herdr-grandchild-unconfirmed-close)
   write_meta "$case_dir" local-only secondmate
   configure_nested_secondmate_with_herdr_grandchild "$case_dir"
-  home="$case_dir/secondmate-home"; nested_home="$home/nested-home"
+  home="$case_dir-secondmate-home"; nested_home="$home/nested-home"
   log="$case_dir/herdr.log"; closed="$case_dir/closed"; : > "$log"
   rc=0
   FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" \

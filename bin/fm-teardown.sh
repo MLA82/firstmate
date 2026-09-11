@@ -3196,7 +3196,7 @@ if [ "$KIND" != secondmate ]; then
       ORCA_PATH_MATCH_VERIFIED=1
     fi
   elif [ -d "$WT" ] && ! is_treehouse_pool_slot "$PROJ" "$WT"; then
-    echo "REFUSED: worktree $WT recorded for task $ID is not a Treehouse pool slot of project ${PROJ:-<missing>}." >&2
+    echo "REFUSED: worktree $WT recorded for task $ID is not a Treehouse pool slot of project ${PROJ:-<missing>}; nothing was changed." >&2
     echo "Refusing before touching a single process: state/$ID.meta's worktree= or project= is likely stale or wrong. Verify it against \`treehouse status\` before retrying." >&2
     exit 1
   fi
