@@ -202,6 +202,8 @@ SH
 # git shim: fail the FIRST `fetch` with the packed-refs.lock signature and drop
 # the lock (simulating the dying ref-rewrite finishing), then delegate every
 # later call - including the retried fetch - to the real git so the sync completes.
+# Like real git, the signature is English only under LC_ALL=C and localized
+# (German) otherwise.
 git_transient_packed_refs_lock() {
   cat > "$1/git" <<'SH'
 #!/usr/bin/env bash
@@ -215,7 +217,11 @@ if [ "$is_fetch" = 1 ]; then
   printf '%s\n' "$n" > "$GIT_FETCH_COUNTER"
   if [ "$n" -eq 1 ]; then
     lock="$dir/.git/packed-refs.lock"
-    echo "error: could not delete reference refs/remotes/origin/feature: Unable to create '$lock': File exists." >&2
+    if [ "${LC_ALL:-}" = C ]; then
+      echo "error: could not delete reference refs/remotes/origin/feature: Unable to create '$lock': File exists." >&2
+    else
+      echo "error: Konnte Referenz refs/remotes/origin/feature nicht entfernen: Konnte '$lock' nicht erstellen: Die Datei existiert bereits." >&2
+    fi
     rm -f "$lock"
     exit 1
   fi
@@ -609,7 +615,9 @@ test_transient_packed_refs_lock_self_clears() {
   counter="$home/git-fetch-count"; : > "$counter"
   out="$home/out-locktrans"; err="$home/err-locktrans"
 
+  # A German operator shell: the guard must still see git's English signature.
   set +e
+  LC_ALL= LANG=de_DE.UTF-8 \
   GIT_FETCH_COUNTER="$counter" \
   FM_FLEET_SYNC_PACKED_REFS_LOCK_RETRIES=3 \
   FM_FLEET_SYNC_PACKED_REFS_LOCK_RETRY_WAIT_SECS=0 \
