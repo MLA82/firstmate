@@ -487,16 +487,23 @@ fm_touch_epoch() {
 # As root, fails the test outright when setpriv is missing or cannot apply the
 # drop: a nonzero status there would read as "the command was denied" to a
 # caller asserting a denial, which would then pass without running anything.
+# That refusal is probed once here, while stderr is still the test's own, and
+# reported on a copy of it: callers asserting a denial redirect the call's
+# stderr to a scratch file their cleanup deletes.
+FM_TEST_DAC_DROP=(setpriv '--bounding-set=-dac_override,-dac_read_search' '--inh-caps=-dac_override,-dac_read_search')
+if [ "$(id -u)" = 0 ] && ! "${FM_TEST_DAC_DROP[@]}" -- true 2>/dev/null; then
+  exec {FM_TEST_DAC_DROP_REFUSAL_FD}>&2
+fi
 fm_run_without_dac_override() {
-  local drop=(setpriv '--bounding-set=-dac_override,-dac_read_search' '--inh-caps=-dac_override,-dac_read_search')
   if [ "$(id -u)" != 0 ]; then
     "$@"
     return $?
   fi
-  "${drop[@]}" -- true 2>/dev/null \
-    || fail "fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run $1 with root's permission bypass"
+  if [ -n "${FM_TEST_DAC_DROP_REFUSAL_FD:-}" ]; then
+    fail "fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run $1 with root's permission bypass" 2>&"$FM_TEST_DAC_DROP_REFUSAL_FD"
+  fi
   # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
-  "${drop[@]}" -- bash -c '"$@"' _ "$@"
+  "${FM_TEST_DAC_DROP[@]}" -- bash -c '"$@"' _ "$@"
 }
 
 # _fm_dac_override_drop_blocks_write <dir>: true only if
