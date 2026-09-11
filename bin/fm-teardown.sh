@@ -171,26 +171,20 @@
 # delete, or backend kill below - a still-active run or a leaked process may
 # own live work in that worktree):
 #   Fix 0 - prove the recorded worktree= is a Treehouse pool slot of the
-#     recorded project before Fix 1/Fix 2 are allowed to run at all. Incident
-#     2026-08-26: a scout's worktree= in state/<id>.meta pointed at the PRIMARY
-#     firstmate checkout instead of the pool worktree the worker actually used
-#     (a separate fm-spawn.sh defect, tracked on its own); Fix 2 trusted that
-#     recorded path and killed live processes rooted there, including the
-#     primary firstmate's own session, before the later `treehouse return`
-#     call ever discovered the path was not treehouse-managed - by then the
-#     damage was done. This is why Fix 2's own "can never reach ... the
-#     primary's processes" claim below held only as long as the metadata was
-#     honest; is_treehouse_pool_slot no longer trusts it. The check refuses
-#     loudly (REFUSED, no process touched) whenever the recorded path is not a
-#     pool slot of the project, proven offline from the pool's own
+#     recorded project before Fix 1/Fix 2 are allowed to run at all, because
+#     Fix 2 reaps by that recorded path (observed 2026-08-26: a scout's
+#     worktree= pointed at the PRIMARY firstmate checkout, and Fix 2 killed
+#     live processes rooted there, including the primary's own session, before
+#     the later `treehouse return` ever found the path unmanaged).
+#     is_treehouse_pool_slot proves membership offline from the pool's own
 #     treehouse-state.json and a shared Git common directory, so a missing or
-#     failing treehouse binary cannot block it. Skipped for backend=orca:
-#     Orca's worktrees are never treehouse pool slots by design, so this check
-#     would always refuse them; Orca is proved instead, BEFORE Fix 2 runs, by
-#     require_orca_worktree_path_match_if_present, over its own registry - not
-#     merely by whatever later, backend-specific cleanup happens to run
-#     afterward. Both proofs also run before the backlog-close marker is
-#     written, so a refusal leaves nothing for a later session start to replay.
+#     failing treehouse binary cannot block it; a non-pool path refuses loudly
+#     (REFUSED) with no process touched. Skipped for backend=orca, whose
+#     worktrees are never pool slots by design:
+#     require_orca_worktree_path_match_if_present proves them over Orca's own
+#     registry instead, also BEFORE Fix 2 runs. Both proofs run before the
+#     backlog-close marker is written, so a refusal leaves nothing for a later
+#     session start to replay.
 #   Fix 1 - conclude the task's own no-mistakes run. A ship task's worktree can
 #     be torn down while its no-mistakes pipeline run is still PARKED at a gate
 #     (awaiting_approval/fix_review/any awaiting_agent field), with no worker
