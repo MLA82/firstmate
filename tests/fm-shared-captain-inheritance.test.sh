@@ -65,7 +65,7 @@ assert_secondmate_write_fails() {
   # the file's read-only mode via CAP_DAC_OVERRIDE; fm_run_without_dac_override
   # drops it so this write is checked against the mode bits like anyone else.
   # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
-  if fm_run_without_dac_override bash -c 'printf "%s\n" "secondmate edit" >> "$1"' _ "$path" 2>/dev/null; then
+  if fm_run_without_dac_override bash -c '{ printf "%s\n" "secondmate edit" >> "$1"; } 2>/dev/null' _ "$path"; then
     fail "ordinary write unexpectedly succeeded for read-only shared captain file"
   fi
 }

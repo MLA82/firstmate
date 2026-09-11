@@ -86,13 +86,6 @@ pass() {
 FM_TEST_CLEANUP_DIRS=()
 FM_TEST_CLEANUP_REGISTRY=$(mktemp "${TMPDIR:-/tmp}/.fm-test-cleanup.$$.XXXXXX") || return 1
 
-# Directories currently write-blocked via fm_dir_block_writes, so
-# fm_test_cleanup can unblock them if a signal cuts a test off before its
-# matching fm_dir_unblock_writes runs. Lives in-process (not the registry
-# file $$-keyed subshells need): every caller of fm_dir_block_writes runs
-# directly in the test process, never in a captured subshell.
-FM_TEST_BLOCKED_DIRS=()
-
 fm_test_pid_identity() {
   local pid=$1
   FM_STATE_OVERRIDE="${TMPDIR:-/tmp}" bash -c \
@@ -154,23 +147,30 @@ fm_test_reap_procevent_homes() {
 FM_TEST_STUB_MAX_BLOCK_SECONDS=${FM_TEST_STUB_MAX_BLOCK_SECONDS:-120}
 export FM_TEST_STUB_MAX_BLOCK_SECONDS
 
+# fm_test_remove_tree <dir>: rm -rf <dir> after restoring owner access to
+# every directory under it. A fixture directory can still be chmod'd
+# unwritable when its tree is removed - fm_dir_block_writes run inside a
+# command substitution that a signal cut off before fm_dir_unblock_writes, or
+# a killed prior run - and a non-root `rm -rf` cannot unlink entries from
+# it. Restoring access here, from the tree itself, covers every such caller
+# without having to track which directories were blocked or in which shell.
+fm_test_remove_tree() {
+  local dir=$1
+  if [ -d "$dir" ] && [ ! -L "$dir" ]; then
+    find "$dir" -type d -exec chmod u+rwx {} + 2>/dev/null || true
+  fi
+  rm -rf "$dir"
+}
+
 fm_test_cleanup() {
   local d
   fm_test_reap_procevent_homes
-  # Restore write access to any directory a test left blocked via
-  # fm_dir_block_writes before removing it below: a signal landing between
-  # fm_dir_block_writes and its matching fm_dir_unblock_writes would otherwise
-  # reach this trap while the directory is still unwritable, and a non-root
-  # `rm -rf` cannot unlink entries from a write-blocked directory.
-  for d in "${FM_TEST_BLOCKED_DIRS[@]:-}"; do
-    [ -n "$d" ] && chmod u+w "$d" 2>/dev/null
-  done
   for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"; do
-    [ -n "$d" ] && rm -rf "$d"
+    [ -n "$d" ] && fm_test_remove_tree "$d"
   done
   if [ -f "$FM_TEST_CLEANUP_REGISTRY" ]; then
     while IFS= read -r d; do
-      [ -n "$d" ] && rm -rf "$d"
+      [ -n "$d" ] && fm_test_remove_tree "$d"
     done < "$FM_TEST_CLEANUP_REGISTRY"
     rm -f "$FM_TEST_CLEANUP_REGISTRY"
   fi
@@ -224,10 +224,7 @@ fm_test_reap_orphans() {
     mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker" 2>/dev/null) || continue
     [ $((now - mtime)) -ge "$FM_TEST_ORPHAN_MAX_AGE_SECONDS" ] || continue
     dir=$(dirname "$marker")
-    if [ -d "$dir" ] && [ ! -L "$dir" ]; then
-      find "$dir" -type d -exec chmod u+rwx {} + 2>/dev/null || true
-    fi
-    rm -rf "$dir"
+    fm_test_remove_tree "$dir"
   done
 }
 
@@ -462,8 +459,9 @@ fm_touch_epoch() {
 #
 # Dropping CAP_DAC_OVERRIDE itself needs no namespace: CAP_SETPCAP (also
 # ordinary for a container's root user) lets setpriv shrink the capability
-# bounding set for one exec'd command, so <command...> ends up subject to
-# plain file-mode checks like anyone else, while the calling shell (and
+# bounding and inheritable sets for one exec'd command, so <command...> ends
+# up subject to plain file-mode checks like anyone else, while the calling
+# shell (and
 # every path <command...> is not meant to touch) keeps root's normal access -
 # no uid change, so no separate traversal/ownership setup for the rest of the
 # fixture tree. fm_run_without_dac_override is the primitive; the two
@@ -475,9 +473,10 @@ fm_touch_epoch() {
 # fm_run_without_dac_override <command...>: run <command...> normally when
 # not root (plain DAC checks already apply). As root, run it with both
 # CAP_DAC_OVERRIDE and CAP_DAC_READ_SEARCH removed from the capability
-# bounding set, so any file mode bits <command...> encounters (including ones
-# it sets up itself, like a fake tool chmod'ing a path mid-run) are enforced
-# against it instead of bypassed. Both capabilities independently let a
+# bounding and inheritable sets (a root exec regains any capability left in
+# the inheritable set, whatever the bounding set says), so any file mode bits
+# <command...> encounters (including ones it sets up itself, like a fake tool
+# chmod'ing a path mid-run) are enforced against it instead of bypassed. Both capabilities independently let a
 # process bypass a file's read permission bits, so a read-denial fixture
 # (e.g. chmod 000) that dropped only CAP_DAC_OVERRIDE would still be read via
 # CAP_DAC_READ_SEARCH alone - dropping just one leaves the other capability
@@ -485,13 +484,19 @@ fm_touch_epoch() {
 # <command...> is looked up as a shell function first (via the exported
 # BASH_FUNC_ mechanism), then as an external command, exactly as bash
 # ordinarily resolves a simple command.
+# As root, fails the test outright when setpriv is missing or cannot apply the
+# drop: a nonzero status there would read as "the command was denied" to a
+# caller asserting a denial, which would then pass without running anything.
 fm_run_without_dac_override() {
+  local drop=(setpriv '--bounding-set=-dac_override,-dac_read_search' '--inh-caps=-dac_override,-dac_read_search')
   if [ "$(id -u)" != 0 ]; then
     "$@"
     return $?
   fi
+  "${drop[@]}" -- true 2>/dev/null \
+    || fail "fm_run_without_dac_override: setpriv cannot drop CAP_DAC_OVERRIDE/CAP_DAC_READ_SEARCH for root; refusing to run $1 with root's permission bypass"
   # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
-  setpriv --bounding-set=-dac_override,-dac_read_search -- bash -c '"$@"' _ "$@"
+  "${drop[@]}" -- bash -c '"$@"' _ "$@"
 }
 
 # _fm_dac_override_drop_blocks_write <dir>: true only if
@@ -501,9 +506,8 @@ fm_run_without_dac_override() {
 _fm_dac_override_drop_blocks_write() {
   local dir=$1 probe rc
   probe="$dir/.fm-run-dir-readonly-probe.$$"
-  command -v setpriv >/dev/null 2>&1 || return 1
   # shellcheck disable=SC2016 # Positional parameters expand inside the child bash, not here.
-  fm_run_without_dac_override bash -c '>"$1"' _ "$probe" 2>/dev/null
+  fm_run_without_dac_override bash -c '{ : >"$1"; } 2>/dev/null' _ "$probe"
   rc=$?
   rm -f "$probe" 2>/dev/null
   [ "$rc" -ne 0 ]
@@ -528,7 +532,6 @@ fm_dir_block_writes() {
     chmod u+w "$dir"
     return 97
   fi
-  FM_TEST_BLOCKED_DIRS+=("$dir")
   return 0
 }
 
