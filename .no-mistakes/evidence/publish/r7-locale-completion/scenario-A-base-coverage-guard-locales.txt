@@ -1,0 +1,12 @@
+# BASE e0d269e: bin/fm-test-run.sh --check-coverage under three locales
+## LC_ALL=C
+FM_TEST_COVERAGE ok total=197 parallel=24 parallel_max_ms=414299 parallel_imbalance_ms=30 parallel_unhinted=0 serial=158 serial_shards=5 serial_unhinted=12 herdr=15
+exit=0
+## LC_ALL=en_US.UTF-8
+comm: die Datei 2 ist nicht sortiert
+comm: die Eingabe ist nicht sortiert
+exit=1
+## LC_ALL=de_DE.UTF-8
+comm: die Datei 2 ist nicht sortiert
+comm: die Eingabe ist nicht sortiert
+exit=1

@@ -1,0 +1,22 @@
+# Real PR #3726 head per GitHub API:
+59c2d3109b90f6a6b4408c1fd8a76a44b34fd574
+# Local refs:
+59c2d3109b90f6a6b4408c1fd8a76a44b34fd574 refs/heads/publish/r7-locale-completion
+59c2d3109b90f6a6b4408c1fd8a76a44b34fd574 refs/remotes/no-mistakes-push/publish/r7-locale-completion
+# HEAD under test: 41c82b8ecdb2389a20890b57cbf1545a6dc792d8
+59c2d31 IS an ancestor of HEAD
+# Simulated remote: bare repo with publish/r7-locale-completion at 59c2d31, receive.denyNonFastForwards=true
+# push HEAD without --force:
+To /tmp/r7-ff.O4Tw5X/remote.git
+   59c2d31..41c82b8  HEAD -> publish/r7-locale-completion
+push exit=0
+# remote branch now: 41c82b8ecdb2389a20890b57cbf1545a6dc792d8
+# Contrast: pushing the round-1 rebased commit 3411a08 over 59c2d31 without --force:
+To /tmp/r7-ff.O4Tw5X/remote2.git
+ ! [rejected]        3411a08 -> publish/r7-locale-completion (non-fast-forward)
+error: Fehler beim Versenden einiger Referenzen nach '/tmp/r7-ff.O4Tw5X/remote2.git'
+Hinweis: Updates were rejected because a pushed branch tip is behind its remote
+Hinweis: counterpart. If you want to integrate the remote changes, use 'git pull'
+Hinweis: before pushing again.
+Hinweis: See the 'Note about fast-forwards' in 'git push --help' for details.
+push exit=1

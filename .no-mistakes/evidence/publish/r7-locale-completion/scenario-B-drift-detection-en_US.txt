@@ -1,0 +1,14 @@
+# Adversarial drift at HEAD 41c82b8: bin/fm-test-isolation-proof.sh --list now also claims tests/fm-backend-herdr-zz-drift.test.sh,
+# so the embedded proven-isolated set must be reported as diverging. The name sits where C and en_US collation disagree.
+## LC_ALL=C
+fm-test-run: coverage guard: embedded proven-isolated set diverges from bin/fm-test-isolation-proof.sh --list
+	tests/fm-backend-herdr-zz-drift.test.sh
+exit=1
+## LC_ALL=en_US.UTF-8
+fm-test-run: coverage guard: embedded proven-isolated set diverges from bin/fm-test-isolation-proof.sh --list
+	tests/fm-backend-herdr-zz-drift.test.sh
+exit=1
+## LC_ALL=de_DE.UTF-8
+fm-test-run: coverage guard: embedded proven-isolated set diverges from bin/fm-test-isolation-proof.sh --list
+	tests/fm-backend-herdr-zz-drift.test.sh
+exit=1

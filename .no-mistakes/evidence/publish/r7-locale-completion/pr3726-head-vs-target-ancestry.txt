@@ -1,0 +1,11 @@
+$ gh pr view 3726 -R kunchenguid/firstmate --json headRefOid
+59c2d3109b90f6a6b4408c1fd8a76a44b34fd574
+$ git log --oneline -1 --format="%h parent=%p %s" 59c2d31
+59c2d31 parent=8f7b79c fix(test-run): run comm under LC_ALL=C in the coverage guard
+$ git log --oneline -1 --format="%h parent=%p %s" 3411a08   # commit under test
+3411a08 parent=e0d269e fix(test-run): run comm under LC_ALL=C in the coverage guard
+$ git merge-base --is-ancestor 59c2d31 3411a08
+ancestor: NO -> pushing 3411a08 onto publish/r7-locale-completion is non-fast-forward
+$ git for-each-ref (r7-locale refs)
+refs/heads/publish/r7-locale-completion 59c2d31
+refs/remotes/no-mistakes-push/publish/r7-locale-completion 59c2d31

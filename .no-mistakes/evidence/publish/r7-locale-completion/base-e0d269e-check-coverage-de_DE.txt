@@ -1,0 +1,4 @@
+$ env -u LC_ALL LANG=de_DE.UTF-8 bin/fm-test-run.sh --check-coverage   # BASE e0d269e (before fix)
+comm: die Datei 2 ist nicht sortiert
+comm: die Eingabe ist nicht sortiert
+exit=1
