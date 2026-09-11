@@ -24,9 +24,9 @@
 # A tracked-files fast-forward never touches the gitignored operational dirs
 # (data/, state/, config/, projects/, .no-mistakes/), so it cannot disturb a
 # secondmate's backlog, projects, or in-flight work.
-# The seeded .fm-secondmate-home identity marker is gitignored too; the local
-# sync tolerates only that marker during the one-time upgrade of pre-ignore
-# linked-worktree homes.
+# The seeded .fm-secondmate-home identity marker is gitignored too; like any
+# untracked-only path it never blocks the fast-forward, which lets pre-ignore
+# linked-worktree homes upgrade.
 # Locally leased homes start at a detached HEAD on the default branch, so their
 # fast-forward advances HEAD only and never moves the shared default branch or
 # any other worktree's checkout. A standalone remote home may instead advance
@@ -246,12 +246,9 @@ remote_sync_failure_reason() { # <exit-status> <output>
   first_line "$2"
 }
 
-# dirty_status <dir> [ignore_seed_marker]:
-#   Returns the first line of `git status --porcelain` output (the original
-#   behavior).  Used by fm-config-push.sh for a simple "is there any change?"
-#   check.  For the fast-forward refusal logic in ff_target, see the inline
-#   tracked-vs-untracked split below, which matches bin/fm-fleet-sync.sh's
-#   pattern (grep -qv '^??').
+# dirty_status <dir> [ignore_seed_marker]: the first `git status --porcelain`
+# line, optionally skipping the untracked seed marker (fm-config-push.sh's
+# any-change check).
 dirty_status() {
   local dir=$1 ignore_seed_marker=${2:-no}
   if [ "$ignore_seed_marker" = yes ]; then
@@ -295,11 +292,13 @@ live_secondmate_meta_records() {
 #                  for a worktree of this same repo; a standalone clone that lacks
 #                  it is skipped rather than fetched.
 # Guards are identical in both modes: ff-only (never force/merge/stash); skip a
-# dirty, diverged, or wrong-branch target and leave its work untouched.
+# target with tracked-file changes, or a diverged or wrong-branch target, and
+# leave its work untouched. Untracked-only paths never block: the ff-only merge
+# itself refuses to overwrite an untracked file.
 FF_STATUS=""
 FF_INSTR=""
 ff_target() {
-  local dir=$1 label=$2 base_mode=$3 allow_detached=${4:-no} ignore_seed_marker=${5:-no}
+  local dir=$1 label=$2 base_mode=$3 allow_detached=${4:-no}
   FF_STATUS="skipped"
   FF_INSTR=""
 
@@ -348,37 +347,10 @@ ff_target() {
     return 0
   fi
 
-  # dirty: tracked-file changes only (modified/staged/deleted/conflicted) -
-  # blocks the fast-forward unchanged.
-  # untracked: untracked-only paths (e.g. an ignored tool cache). These can
-  # never be silently destroyed by a fast-forward - git itself refuses one that
-  # would overwrite an untracked file - so untracked-only never blocks by
-  # itself; see the header comment.  The split here matches the pattern in
-  # bin/fm-fleet-sync.sh.
-  _status_out=$(git -C "$dir" status --porcelain 2>/dev/null) || _status_out=""
-  _dirty=no
-  _untracked=no
-  if [ -n "$_status_out" ]; then
-    if [ "$ignore_seed_marker" = yes ]; then
-      # Exclude the seed marker plus untracked-only lines.
-      if printf '%s\n' "$_status_out" | awk -v marker="?? $SUB_HOME_MARKER" '$0 != marker' | grep -qv '^??'; then
-        _dirty=yes
-      else
-        _untracked=yes
-      fi
-    else
-      if printf '%s\n' "$_status_out" | grep -qv '^??'; then
-        _dirty=yes
-      else
-        _untracked=yes
-      fi
-    fi
-  fi
-  if [ "$_dirty" = yes ]; then
+  if [ -n "$(git -C "$dir" status --porcelain --untracked-files=no 2>/dev/null | head -1)" ]; then
     echo "$label: skipped: dirty working tree"
     return 0
   fi
-  _FF_UNTRACKED="$_untracked"
 
   local_rev=$(git -C "$dir" rev-parse HEAD 2>/dev/null) || {
     echo "$label: skipped: cannot read HEAD"
@@ -461,7 +433,7 @@ process_secondmate() {
   esac
   FF_SEEN_HOMES="$FF_SEEN_HOMES $home_real"
 
-  ff_target "$home_real" "secondmate $id" "$base_mode" yes yes
+  ff_target "$home_real" "secondmate $id" "$base_mode" yes
   if [ -n "$window" ] && { [ "$FF_STATUS" = "updated" ] || [ "$FF_STATUS" = "current" ]; } \
     && type fm_ff_after_secondmate_settled >/dev/null 2>&1; then
     fm_ff_after_secondmate_settled "$id" "$home_real" "$window" "$FF_STATUS" "$FF_INSTR"
