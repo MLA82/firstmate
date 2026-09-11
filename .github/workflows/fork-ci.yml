@@ -1,0 +1,217 @@
+name: Fork CI (manual)
+
+# Fork-only manually triggered workflow to test MLA82/firstmate branches
+# on free GitHub-hosted runners without waiting for upstream CI approval.
+# Must never run automatically on push or pull_request.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Target ref (branch, tag, or SHA in MLA82/firstmate) to test'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Install pinned ShellCheck
+        run: |
+          set -eu
+          bin/fm-install-shellcheck.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install pinned actionlint
+        run: |
+          set -eu
+          bin/fm-install-actionlint.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - run: bin/fm-lint.sh
+
+  test-coverage:
+    name: Test coverage guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Prove complete regression partition
+        run: bin/fm-test-run.sh --check-coverage
+
+  resolve-lanes:
+    name: Resolve test lanes
+    runs-on: ubuntu-latest
+    outputs:
+      parallel_lanes: ${{ steps.discover.outputs.parallel_lanes }}
+      serial_lanes: ${{ steps.discover.outputs.serial_lanes }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - id: discover
+        name: Discover lanes from ref
+        run: |
+          set -eu
+          all_lanes=$(bin/fm-test-run.sh --list-lanes)
+          parallel_lanes=$(printf '%s\n' "$all_lanes" | grep '^portable-parallel-' | jq -R -s -c 'split("\n")[:-1]')
+          serial_lanes=$(printf '%s\n' "$all_lanes" | grep '^portable-serial-.*of.*' | jq -R -s -c 'split("\n")[:-1]')
+          [ -n "$parallel_lanes" ] && [ "$parallel_lanes" != "[]" ] || {
+            echo "::error::no portable parallel lanes discovered"
+            exit 1
+          }
+          [ -n "$serial_lanes" ] && [ "$serial_lanes" != "[]" ] || {
+            echo "::error::no portable serial lanes discovered"
+            exit 1
+          }
+          echo "parallel_lanes=${parallel_lanes}" >> "$GITHUB_OUTPUT"
+          echo "serial_lanes=${serial_lanes}" >> "$GITHUB_OUTPUT"
+
+  tests-portable-parallel:
+    name: Behavior ${{ matrix.lane }}
+    runs-on: ubuntu-latest
+    needs: resolve-lanes
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: ${{ fromJSON(needs.resolve-lanes.outputs.parallel_lanes) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - name: Install pinned ShellCheck
+        run: |
+          set -eu
+          bin/fm-install-shellcheck.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install pinned actionlint
+        run: |
+          set -eu
+          bin/fm-install-actionlint.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install tasks-axi
+        run: |
+          set -eu
+          npm install -g tasks-axi
+          tasks-axi --version
+      - name: Install the Pi package for the Pi extension tests
+        run: |
+          set -eu
+          npm install -g @earendil-works/pi-coding-agent
+          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+      - name: Run ${{ matrix.lane }}
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/fm-test"
+          bin/fm-test-run.sh --lane "${{ matrix.lane }}" \
+            --fail-on-gate-skip 'Pi extension typecheck prerequisite not found' \
+            --json "$RUNNER_TEMP/fm-test/fm-test-timing-${{ matrix.lane }}.json"
+      - name: Upload ${{ matrix.lane }} timing artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fm-test-timing-${{ matrix.lane }}
+          path: ${{ runner.temp }}/fm-test/fm-test-timing-${{ matrix.lane }}.json
+          if-no-files-found: warn
+
+  tests-portable-serial:
+    name: Behavior ${{ matrix.lane }}
+    runs-on: ubuntu-latest
+    needs: resolve-lanes
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: ${{ fromJSON(needs.resolve-lanes.outputs.serial_lanes) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - name: Install pinned ShellCheck
+        run: |
+          set -eu
+          bin/fm-install-shellcheck.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install pinned actionlint
+        run: |
+          set -eu
+          bin/fm-install-actionlint.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Require tmux for e2e tests
+        run: |
+          set -eu
+          command -v tmux >/dev/null || {
+            echo "::error::tmux is required for real afk injection e2e coverage"
+            exit 1
+          }
+          tmux -V
+      - name: Install tasks-axi for backlog-handoff delegation
+        run: |
+          set -eu
+          npm install -g tasks-axi
+          tasks-axi --version
+      - name: Install the Pi package for the Pi extension tests
+        run: |
+          set -eu
+          npm install -g @earendil-works/pi-coding-agent
+          npm ls -g --depth 0 @earendil-works/pi-coding-agent
+      - name: Run ${{ matrix.lane }}
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/fm-test"
+          bin/fm-test-run.sh --lane "${{ matrix.lane }}" \
+            --fail-on-gate-skip 'Pi extension typecheck prerequisite not found' \
+            --json "$RUNNER_TEMP/fm-test/fm-test-timing-${{ matrix.lane }}.json"
+      - name: Upload ${{ matrix.lane }} timing artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fm-test-timing-${{ matrix.lane }}
+          path: ${{ runner.temp }}/fm-test/fm-test-timing-${{ matrix.lane }}.json
+          if-no-files-found: warn
+
+  tests-timing-aggregate:
+    name: Behavior timing aggregate
+    runs-on: ubuntu-latest
+    needs:
+      - tests-portable-parallel
+      - tests-portable-serial
+    if: always()
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Download lane timing artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fm-test-timing-*
+          path: ${{ runner.temp }}/fm-test-aggregate
+          merge-multiple: true
+      - name: Build aggregate timing summary
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/fm-test"
+          shopt -s nullglob
+          inputs=("$RUNNER_TEMP"/fm-test-aggregate/fm-test-timing-*.json)
+          if [ "${#inputs[@]}" -eq 0 ]; then
+            echo "::warning::no per-lane timing JSON found to aggregate"
+            exit 0
+          fi
+          bin/fm-test-run.sh --aggregate-json \
+            "$RUNNER_TEMP/fm-test/fm-test-timing-aggregate.json" \
+            "${inputs[@]}"
+      - name: Upload aggregate timing artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fm-test-timing-aggregate
+          path: ${{ runner.temp }}/fm-test/fm-test-timing-aggregate.json
+          if-no-files-found: warn
