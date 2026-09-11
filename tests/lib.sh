@@ -322,8 +322,8 @@ fm_live_gate() {
 # fm_fakebin <dir> creates <dir>/fakebin and echoes it; prepend it to PATH to
 # shadow real tools with stubs. fm_fake_exit0 drops trivial exit-0 stubs for the
 # named tools into a fakebin dir. fm_fake_crash_injector drops the shim a fake
-# uses to crash the process under test deterministically. fm_fake_treehouse_pool
-# provides the exact-pool `treehouse status` baseline the teardown fixtures need.
+# uses to crash the process under test deterministically. fm_treehouse_pool_slot
+# gives a fixture worktree the managed pool layout teardown proves before reaping.
 # fm_fake_version_tool drops a stub for a tool whose installed version bootstrap
 # gates, so a fixture cannot be reported as an unparseable build simply for
 # answering `--version` with nothing.
@@ -382,31 +382,17 @@ SH
   chmod +x "$fakebin/fm-crash-inject"
 }
 
-# fm_fake_treehouse_pool <fakebin> <pool-path>...
-# Writes a treehouse fake whose status output lists exactly the supplied pool paths and whose other operations succeed.
-# Tests that need logging, failures, or return-time mutation keep their behavior-specific fake beside the owning test.
-fm_fake_treehouse_pool() {
-  local fakebin=$1 pool_file="$1/.fm-test-treehouse-pool" pool_path
-  shift
-  : > "$pool_file"
-  for pool_path in "$@"; do
-    printf '%s\n' "$pool_path" >> "$pool_file"
+# fm_treehouse_pool_slot <slot>...
+# Writes the pool state file a Treehouse pool keeps at <pool>/treehouse-state.json
+# for each <pool>/<slot>/<repo> path, so a linked worktree of the recorded project
+# at that path is a pool slot to bin/fm-teardown.sh.
+fm_treehouse_pool_slot() {
+  local slot pool
+  for slot in "$@"; do
+    pool=$(dirname "$(dirname "$slot")")
+    mkdir -p "$pool"
+    printf '{"worktrees":[]}\n' > "$pool/treehouse-state.json"
   done
-  cat > "$fakebin/treehouse" <<'SH'
-#!/usr/bin/env bash
-set -u
-if [ "${1:-}" = status ]; then
-  pool_file="$(cd "$(dirname "$0")" && pwd -P)/.fm-test-treehouse-pool"
-  index=0
-  while IFS= read -r pool_path; do
-    [ -n "$pool_path" ] || continue
-    index=$((index + 1))
-    printf '%s     leased       %s\n' "$index" "$pool_path"
-  done < "$pool_file"
-fi
-exit 0
-SH
-  chmod +x "$fakebin/treehouse"
 }
 
 # fm_fake_version_tool <fakebin> <tool> <override-env-var> <default-version>

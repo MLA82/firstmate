@@ -834,7 +834,6 @@ test_scout_teardown_removes_orca_worktree_via_helper() {
     "backend=orca" "orca_worktree_id=wt-teardown" \
     "decisions_reviewed=1" "decision_keys="
   orca_case teardown
-  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-teardown","path":"%s"}}}\n' "$wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -870,13 +869,10 @@ test_scout_teardown_orca_worktree_not_in_treehouse_pool_still_succeeds() {
     "backend=orca" "orca_worktree_id=wt-teardown-notpool" \
     "decisions_reviewed=1" "decision_keys="
   orca_case teardown-notpool
-  # An empty treehouse pool: Orca creates and owns its own worktrees outside
-  # the treehouse pool (docs/architecture.md), so a real `treehouse status`
-  # would never list one. The unconditional treehouse-membership guard must
-  # not refuse an Orca teardown just because its worktree is absent here;
-  # Orca's own worktree registry (the orca CLI response below) is the proof
-  # that applies to it instead.
-  fm_fake_treehouse_pool "$FB"
+  # The worktree sits outside any Treehouse pool: Orca creates and owns its own
+  # worktrees (docs/architecture.md), so they are never pool slots. The
+  # pool-slot guard must not refuse an Orca teardown for that; Orca's own
+  # worktree registry (the orca CLI response below) is the proof that applies.
   printf '{"ok":true,"result":{"worktree":{"id":"wt-teardown-notpool","path":"%s"}}}\n' "$wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -885,13 +881,13 @@ test_scout_teardown_orca_worktree_not_in_treehouse_pool_still_succeeds() {
     "$ROOT/bin/fm-teardown.sh" "$id" 2>&1 )
   rc=$?
   set -e
-  expect_code 0 "$rc" "Orca scout teardown must not be refused for being absent from the treehouse pool"$'\n'"$out"
-  assert_not_contains "$out" "not a treehouse-managed pool worktree" \
-    "Orca teardown was wrongly refused by the treehouse-membership guard"
+  expect_code 0 "$rc" "Orca scout teardown must not be refused for being outside a Treehouse pool"$'\n'"$out"
+  assert_not_contains "$out" "is not a Treehouse pool slot" \
+    "Orca teardown was wrongly refused by the pool-slot guard"
   assert_contains "$(cat "$LOG")" $'orca\x1f''worktree'$'\x1f''rm'$'\x1f''--worktree'$'\x1f''id:wt-teardown-notpool'$'\x1f''--force'$'\x1f''--json' \
     "teardown did not remove the Orca worktree through orca worktree rm"
   assert_absent "$state/$id.meta" "teardown should remove task metadata"
-  pass "fm-teardown.sh backend=orca: teardown succeeds even when the worktree is absent from the treehouse pool"
+  pass "fm-teardown.sh backend=orca: teardown succeeds even when the worktree is outside a Treehouse pool"
 }
 
 test_scout_teardown_refuses_orca_id_path_mismatch() {
@@ -914,7 +910,6 @@ test_scout_teardown_refuses_orca_id_path_mismatch() {
     "backend=orca" "orca_worktree_id=wt-scout-mismatch" \
     "decisions_reviewed=1" "decision_keys="
   orca_case scout-mismatch
-  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-scout-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1075,7 +1070,6 @@ test_ship_teardown_removes_orca_worktree_when_id_path_matches() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-match"
   orca_case ship-match
-  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-ship-match","path":"%s"}}}\n' "$wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1111,7 +1105,6 @@ test_ship_teardown_refuses_orca_unresolvable_worktree_id() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-unresolved"
   orca_case ship-unresolved
-  fm_fake_treehouse_pool "$FB" "$wt"
   printf '1\n' > "$RESP/1.exit"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1151,7 +1144,6 @@ test_ship_teardown_refuses_orca_id_path_mismatch() {
     "harness=claude" "kind=ship" "mode=local-only" "yolo=off" \
     "backend=orca" "orca_worktree_id=wt-ship-mismatch"
   orca_case ship-mismatch
-  fm_fake_treehouse_pool "$FB" "$wt"
   printf '{"ok":true,"result":{"worktree":{"id":"wt-ship-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
@@ -1190,7 +1182,6 @@ test_teardown_refuses_orca_missing_worktree_id() {
     "harness=claude" "kind=scout" "mode=no-mistakes" "yolo=off" "backend=orca" \
     "decisions_reviewed=1" "decision_keys="
   orca_case missing-id
-  fm_fake_treehouse_pool "$FB" "$wt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1223,7 +1214,6 @@ test_teardown_refuses_orca_worktree_without_terminal_handle() {
     "backend=orca" "orca_worktree_id=wt-no-terminal" \
     "decisions_reviewed=1" "decision_keys="
   orca_case no-terminal
-  fm_fake_treehouse_pool "$FB" "$wt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1265,7 +1255,6 @@ test_secondmate_force_teardown_removes_orca_child_via_orca() {
   printf '{"ok":true,"result":{}}\n' > "$RESP/3.out"
   printf '{"ok":true,"result":{}}\n' > "$RESP/4.out"
   add_tmux_fake "$FB"
-  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1309,7 +1298,6 @@ test_secondmate_force_teardown_refuses_orca_child_id_path_mismatch() {
   orca_case secondmate-child-mismatch
   printf '{"ok":true,"result":{"worktree":{"id":"wt-child-mismatch","path":"%s"}}}\n' "$other_wt" > "$RESP/1.out"
   add_tmux_fake "$FB"
-  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
@@ -1350,7 +1338,6 @@ test_secondmate_force_teardown_refuses_partial_orca_child() {
     "backend=orca" "orca_worktree_id=wt-partial-child"
   orca_case secondmate-partial-child-cleanup
   add_tmux_fake "$FB"
-  fm_fake_treehouse_pool "$FB" "$childwt"
   neutral=$(neutral_fm_root "$CASE_DIR/neutral")
   set +e
   out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \

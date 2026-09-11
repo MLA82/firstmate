@@ -170,25 +170,27 @@
 # refusal above has already passed, and BEFORE any worktree return, branch
 # delete, or backend kill below - a still-active run or a leaked process may
 # own live work in that worktree):
-#   Fix 0 - prove the recorded worktree= is an actual treehouse pool member
-#     before Fix 1/Fix 2 are allowed to run at all. Incident 2026-08-26: a
-#     scout's worktree= in state/<id>.meta pointed at the PRIMARY firstmate
-#     checkout instead of the pool worktree the worker actually used (a
-#     separate fm-spawn.sh defect, tracked on its own); Fix 2 trusted that
+#   Fix 0 - prove the recorded worktree= is a Treehouse pool slot of the
+#     recorded project before Fix 1/Fix 2 are allowed to run at all. Incident
+#     2026-08-26: a scout's worktree= in state/<id>.meta pointed at the PRIMARY
+#     firstmate checkout instead of the pool worktree the worker actually used
+#     (a separate fm-spawn.sh defect, tracked on its own); Fix 2 trusted that
 #     recorded path and killed live processes rooted there, including the
 #     primary firstmate's own session, before the later `treehouse return`
 #     call ever discovered the path was not treehouse-managed - by then the
 #     damage was done. This is why Fix 2's own "can never reach ... the
 #     primary's processes" claim below held only as long as the metadata was
-#     honest; worktree_is_treehouse_managed no longer trusts it. The check
-#     refuses loudly (REFUSED, no process touched) whenever the recorded path
-#     is not among `treehouse status`'s own pool members, which is unaffected
-#     by whether the rest of the metadata otherwise looks correct. Skipped for
-#     backend=orca: Orca's worktrees are never treehouse pool members by
-#     design, so this check would always refuse them; Orca is proved instead,
-#     BEFORE Fix 2 runs, by require_orca_worktree_path_match_if_present, over
-#     its own registry - not merely by whatever later, backend-specific
-#     cleanup happens to run afterward.
+#     honest; is_treehouse_pool_slot no longer trusts it. The check refuses
+#     loudly (REFUSED, no process touched) whenever the recorded path is not a
+#     pool slot of the project, proven offline from the pool's own
+#     treehouse-state.json and a shared Git common directory, so a missing or
+#     failing treehouse binary cannot block it. Skipped for backend=orca:
+#     Orca's worktrees are never treehouse pool slots by design, so this check
+#     would always refuse them; Orca is proved instead, BEFORE Fix 2 runs, by
+#     require_orca_worktree_path_match_if_present, over its own registry - not
+#     merely by whatever later, backend-specific cleanup happens to run
+#     afterward. Both proofs also run before the backlog-close marker is
+#     written, so a refusal leaves nothing for a later session start to replay.
 #   Fix 1 - conclude the task's own no-mistakes run. A ship task's worktree can
 #     be torn down while its no-mistakes pipeline run is still PARKED at a gate
 #     (awaiting_approval/fix_review/any awaiting_agent field), with no worker
@@ -2006,36 +2008,6 @@ reap_task_backend_process_group() {  # <label>
   fi
 }
 
-# Proves $dir is a real treehouse pool worktree before anything downstream is
-# allowed to reap processes under it. Recorded task metadata (state/<id>.meta's
-# worktree=) is trusted DATA, not a verified fact: a spawn can isolate the
-# actual worker correctly while still recording the wrong path for teardown to
-# read later. Incident 2026-08-26: a scout's worktree= pointed at the primary
-# firstmate checkout instead of the pool worktree the worker actually used;
-# reap_task_worktree_processes trusted that path and killed live processes in
-# the primary checkout, including the primary firstmate's own session, before
-# the later `treehouse return` call ever discovered the path was not
-# treehouse-managed - by then the damage was already done. This check runs
-# BEFORE any reap for exactly that reason: a wrong path must refuse loudly
-# here, not fail safe only once nothing is left to protect. `treehouse status`
-# is parsed rather than requiring jq for `--json`, since jq is not a
-# fleet-wide guaranteed dependency; any failure of the check itself (missing
-# treehouse, a status error) is treated as NOT managed, so this fails closed.
-worktree_is_treehouse_managed() {  # <dir> <cd_dir>
-  local dir=$1 cd_dir=$2 real_dir status_out candidate expanded
-  real_dir=$(cd "$dir" 2>/dev/null && pwd -P) || return 1
-  status_out=$( (cd "$cd_dir" && treehouse status) 2>/dev/null) || return 1
-  while IFS= read -r candidate; do
-    [ -n "$candidate" ] || continue
-    case "$candidate" in
-      "~"/*) expanded="$HOME/${candidate#"~/"}" ;;
-      *) expanded=$candidate ;;
-    esac
-    [ "$expanded" = "$real_dir" ] && return 0
-  done < <(printf '%s\n' "$status_out" | awk '$1 ~ /^[0-9]+$/ {print $3}')
-  return 1
-}
-
 # worktree_is_in_use <dir> <cd_dir>: true when the worktree is listed as
 # in-use in `treehouse status` output, meaning a live agent still owns it.
 # Used to guard Claude hook file removal so an active worktree's hook is never
@@ -3214,6 +3186,28 @@ if [ "$BACKEND" = herdr ]; then
   TEARDOWN_HERDR_PANE=$FM_BACKEND_HERDR_PANE
 fi
 
+# Fix 0 (see script header): prove the recorded worktree= after every read-only
+# refusal above but BEFORE the durable backlog-close marker below, so a refusal
+# leaves nothing for a later session start to replay, and BEFORE Fix 1/Fix 2
+# touch a single process. Not for kind=secondmate, for the same reason as Fix 1
+# and Fix 2 below. Orca creates and owns its own worktrees outside the treehouse
+# pool (docs/architecture.md), so they are never pool slots and would always be
+# wrongly refused; Orca's own equivalent proof,
+# require_orca_worktree_path_match_if_present over its own worktree registry,
+# runs instead (kind=scout is not exempt from it).
+if [ "$KIND" != secondmate ]; then
+  if [ "$BACKEND" = orca ]; then
+    if [ "$ORCA_PATH_MATCH_VERIFIED" != 1 ]; then
+      require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || exit 1
+      ORCA_PATH_MATCH_VERIFIED=1
+    fi
+  elif [ -d "$WT" ] && ! is_treehouse_pool_slot "$PROJ" "$WT"; then
+    echo "REFUSED: worktree $WT recorded for task $ID is not a Treehouse pool slot of project ${PROJ:-<missing>}." >&2
+    echo "Refusing before touching a single process: state/$ID.meta's worktree= or project= is likely stale or wrong. Verify it against \`treehouse status\` before retrying." >&2
+    exit 1
+  fi
+fi
+
 BACKLOG_CLOSED=0
 BACKLOG_TRANSITION=$TEARDOWN_BACKLOG_TRANSITION
 BACKLOG_TRANSITION_FLAGS=()
@@ -3298,26 +3292,9 @@ fi
 # leaked process can own live work in this exact worktree. Not for
 # kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
 # dedicated process-event and firstmate-home removal machinery further below,
-# not by task-worktree cleanup. Fix 0's treehouse-membership check does not
-# apply to backend=orca: Orca creates and owns its own worktrees outside the
-# treehouse pool (docs/architecture.md), so they never appear in `treehouse
-# status` and would always be wrongly refused here. Orca's own equivalent
-# proof, require_orca_worktree_path_match_if_present over its own worktree
-# registry, runs here instead - BEFORE reap_task_worktree_processes touches a
-# single process, not in a later block after the reap already ran (that is
-# exactly the ordering the 2026-08-26 incident requires; kind=scout is not
-# exempt from it).
+# not by task-worktree cleanup. Fix 0 already proved the recorded worktree=
+# before the backlog-close marker above.
 if [ "$KIND" != secondmate ]; then
-  if [ "$BACKEND" = orca ]; then
-    if [ "$ORCA_PATH_MATCH_VERIFIED" != 1 ]; then
-      require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || exit 1
-      ORCA_PATH_MATCH_VERIFIED=1
-    fi
-  elif [ -d "$WT" ] && ! worktree_is_treehouse_managed "$WT" "$PROJ"; then
-    echo "REFUSED: worktree $WT recorded for task $ID is not a treehouse-managed pool worktree." >&2
-    echo "Refusing before touching a single process: state/$ID.meta's worktree= is likely stale or wrong. Verify it against \`treehouse status\` before retrying." >&2
-    exit 1
-  fi
   conclude_task_no_mistakes_run "$WT"
   reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
 fi
@@ -3328,7 +3305,7 @@ fi
 
 # Best-effort: drop the local task branch so the shared repo does not accumulate refs.
 # ORCA_PATH_MATCH_VERIFIED is already 1 here for every reachable KIND != secondmate
-# case: the reap-guard block above proves it before reap_task_worktree_processes runs.
+# case: the Fix 0 block above proves it before the close marker and the reap.
 if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
   if [ -d "$WT" ]; then
     branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)

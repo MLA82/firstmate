@@ -26,16 +26,6 @@ exit 0
 SH
   cat > "$TMP_ROOT/$dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-# `status` is a read-only pool inspection fm-teardown.sh's pre-reap
-# treehouse_is_managed check makes; answered directly (reporting the sibling
-# `worktree` dir as pool-managed) and never logged to the shared runtime log,
-# which stays scoped to actual endpoint actions (tmux/treehouse return calls)
-# this suite's "did teardown reach the endpoint" assertions police.
-if [ "${1:-}" = status ]; then
-  wt=$(cd ../worktree 2>/dev/null && pwd -P)
-  [ -n "$wt" ] && printf '1     leased       %s\n' "$wt"
-  exit 0
-fi
 printf 'treehouse' >> "${FM_RUNTIME_LOG:?}"
 printf ' <%s>' "$@" >> "${FM_RUNTIME_LOG:?}"
 printf '\n' >> "${FM_RUNTIME_LOG:?}"
@@ -200,6 +190,7 @@ test_non_pool_teardown_ignores_task_set_lock() {
 test_metadata_lock_serializes_destructive_cleanup() {
   local dir id=metadata-locked-task lock ready release holder teardown_pid i=0 rc
   dir=$(make_case metadata-lock)
+  mark_case_as_treehouse_pool "$dir"
   fm_write_meta "$dir/home/state/$id.meta" \
     "window=isolated:fm-$id" "endpoint_task_id=$id" \
     "worktree=$dir/worktree" "project=$dir/project" "kind=scout"

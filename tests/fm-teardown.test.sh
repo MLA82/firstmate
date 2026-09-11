@@ -86,15 +86,6 @@ make_case() {
   # run; the ALLOW cases need them so the script can complete cleanly.
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-# `treehouse status`: report the sibling `wt` worktree (relative to the
-# `project` dir teardown cd's into before calling treehouse) as pool-managed,
-# so fm-teardown.sh's own pre-reap treehouse_is_managed check does not
-# false-refuse every case in this suite.
-if [ "${1:-}" = status ]; then
-  wt=$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "$wt" ] && printf '1     leased       %s\n' "$wt"
-  exit 0
-fi
 # `treehouse return --force <wt>`: succeed silently.
 exit 0
 SH
@@ -190,6 +181,7 @@ SH
   git -C "$case_dir/project" remote set-head origin main 2>/dev/null || true
   # Add a worktree on a fresh task branch; that branch is where the crewmate commits.
   git -C "$case_dir/project" worktree add -q -b fm/task-x1 "$case_dir/wt" main
+  fm_treehouse_pool_slot "$case_dir/wt"
 
   # Fresh watcher beacon so fm-guard stays quiet.
   touch "$case_dir/state/.last-watcher-beat"
@@ -429,11 +421,6 @@ add_lock_aware_treehouse() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-if [ "${1:-}" = status ]; then
-  wt=$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "$wt" ] && printf '1     leased       %s\n' "$wt"
-  exit 0
-fi
 if [ "${1:-}" = return ]; then
   shift
   wt=""
@@ -468,11 +455,6 @@ add_transient_lock_treehouse() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-if [ "${1:-}" = status ]; then
-  wt=$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "$wt" ] && printf '1     leased       %s\n' "$wt"
-  exit 0
-fi
 if [ "${1:-}" = return ]; then
   shift
   wt=""
@@ -518,11 +500,6 @@ add_persistent_lock_treehouse() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-if [ "${1:-}" = status ]; then
-  wt=$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "$wt" ] && printf '1     leased       %s\n' "$wt"
-  exit 0
-fi
 if [ "${1:-}" = return ]; then
   shift
   wt=""
@@ -649,6 +626,7 @@ run_teardown() {
   # home's backlog item itself; without it $DATA would resolve to the real
   # repo's own home and a test could mutate live records.
   FM_ROOT_OVERRIDE="$ROOT" \
+  FM_HOME="${FM_TEARDOWN_TEST_HOME:-$case_dir}" \
   FM_STATE_OVERRIDE="$case_dir/state" \
   FM_DATA_OVERRIDE="$case_dir/data" \
   FM_CONFIG_OVERRIDE="$case_dir/config" \
@@ -1932,7 +1910,7 @@ test_secondmate_home_teardown_delivers_final_line_or_refuses() {
   printf 'working: shipping\ndone: PR https://github.com/example/repo/pull/9 checks green\n' \
     > "$case_dir/state/task-x1.status"
   set +e
-  FM_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  FM_TEARDOWN_TEST_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
   rc=$?
   set -e
   expect_code 0 "$rc" "mate-teardown-delivers: teardown should succeed: $(cat "$case_dir/stderr")"
@@ -1955,7 +1933,7 @@ test_secondmate_home_teardown_delivers_final_line_or_refuses() {
   git -C "$case_dir/project" update-ref refs/heads/main "$wt_head"
   printf 'done: PR https://github.com/example/repo/pull/9 checks green\n' > "$case_dir/state/task-x1.status"
   set +e
-  FM_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  FM_TEARDOWN_TEST_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || fail "mate-teardown-refuses: teardown proceeded with an undelivered final line"
@@ -1975,7 +1953,7 @@ test_secondmate_home_teardown_delivers_final_line_or_refuses() {
   [ -z "$seq" ] || FM_HOME="$case_dir/home" FM_STATE_OVERRIDE="$case_dir/state" \
     "$ROOT/bin/fm-wake-drain.sh" --ack-through "$seq" --recovery-generation "$generation" >/dev/null
   set +e
-  FM_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout2" 2> "$case_dir/stderr2"
+  FM_TEARDOWN_TEST_HOME="$case_dir/home" run_teardown "$case_dir" > "$case_dir/stdout2" 2> "$case_dir/stderr2"
   rc=$?
   set -e
   expect_code 0 "$rc" "mate-teardown-refuses: rerun after repair should succeed: $(cat "$case_dir/stderr2")"
@@ -2117,16 +2095,6 @@ test_herdr_flat_teardown_refuses_orphaning_records_then_retry_completes() {
   thlog="$case_dir/treehouse.log"; : > "$thlog"
   cat > "$case_dir/fakebin/treehouse" <<SH
 #!/usr/bin/env bash
-# \`status\` is a read-only pool inspection fm-teardown.sh's pre-reap
-# treehouse_is_managed check makes before the herdr presentation lock is even
-# considered; it never returns the isolated copy, so it is answered directly
-# and never logged to $thlog - that log stays scoped to the "did teardown
-# actually return the worktree" question this test polices.
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 printf '%s\n' "\$*" >> "$thlog"
 exit 0
 SH
@@ -2223,11 +2191,6 @@ assert_herdr_teardown_preflight_refuses_before_changes() {
   thlog="$case_dir/treehouse.log"; : > "$thlog"
   cat > "$case_dir/fakebin/treehouse" <<SH
 #!/usr/bin/env bash
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 printf '%s\n' "\$*" >> "$thlog"
 exit 0
 SH
@@ -3266,11 +3229,6 @@ test_parked_own_run_refuses_when_abort_is_unconfirmed() {
 
   cat > "$case_dir/fakebin/treehouse" <<EOF
 #!/usr/bin/env bash
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 printf 'return\n' >> "$case_dir/treehouse.log"
 EOF
   chmod +x "$case_dir/fakebin/treehouse"
@@ -3441,11 +3399,6 @@ exit 1
 SH
   cat > "$case_dir/fakebin/treehouse" <<EOF
 #!/usr/bin/env bash
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 printf 'return\n' >> "$case_dir/treehouse.log"
 EOF
   chmod +x "$case_dir/fakebin/lsof" "$case_dir/fakebin/treehouse"
@@ -3672,11 +3625,6 @@ exec "$REAL_PS_FOR_TEST" "$@"
 SH
   cat > "$case_dir/fakebin/treehouse" <<EOF
 #!/usr/bin/env bash
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 printf 'returned\n' > "$case_dir/treehouse.log"
 EOF
   chmod +x "$case_dir/fakebin/lsof" "$case_dir/fakebin/ps" "$case_dir/fakebin/treehouse"
@@ -3713,11 +3661,6 @@ test_run_abort_precedes_process_reap_precedes_worktree_removal() {
   # real observed state, not a source-text or line-number correlation.
   cat > "$case_dir/fakebin/treehouse" <<EOF
 #!/usr/bin/env bash
-if [ "\${1:-}" = status ]; then
-  wt=\$(cd ../wt 2>/dev/null && pwd -P)
-  [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-  exit 0
-fi
 if [ -s "$abort_log" ]; then echo "abort-already-happened" >> "$case_dir/order.log"; fi
 if ! kill -0 $pid 2>/dev/null; then echo "reap-already-happened" >> "$case_dir/order.log"; fi
 exit 0
@@ -3745,26 +3688,19 @@ EOF
 # worker actually used. reap_task_worktree_processes trusted that path and
 # killed live processes there - including the primary firstmate's own session
 # - before the later `treehouse return` call ever discovered the path was not
-# treehouse-managed. The fix (worktree_is_treehouse_managed in
-# bin/fm-teardown.sh) must refuse BEFORE touching a single process whenever
-# worktree= is not a treehouse pool member, regardless of whether the rest of
-# the metadata looks correct - proven here with a live process rooted under
-# the bogus path that must survive the refusal untouched. The incident path
-# was itself a valid Git checkout, so this fixture must be one too: a fallback
-# from an empty `treehouse status` response to Git shape would recreate the
-# original safety hole instead of proving pool membership.
-test_worktree_not_treehouse_managed_refuses_before_reaping_anything() {
+# treehouse-managed. bin/fm-teardown.sh must refuse BEFORE touching a single
+# process whenever worktree= is not a Treehouse pool slot of the project,
+# regardless of whether the rest of the metadata looks correct - proven here
+# with a live process rooted under the bogus path that must survive the
+# refusal untouched. The incident path was itself a checkout of the same
+# repository, so this fixture is one too: a linked worktree sharing the
+# project's Git common directory, just outside any pool.
+test_worktree_not_a_pool_slot_refuses_before_reaping_anything() {
   local case_dir rc not_pool_dir pid
   case_dir=$(make_case worktree-mismatch-refusal)
-  not_pool_dir="$case_dir/not-a-pool-worktree"
-  fm_git_init_commit "$not_pool_dir"
-  cat > "$case_dir/fakebin/treehouse" <<'SH'
-#!/usr/bin/env bash
-# A successful but empty status response must fail closed. Git shape alone
-# cannot distinguish a disposable pool checkout from another primary checkout.
-exit 0
-SH
-  chmod +x "$case_dir/fakebin/treehouse"
+  not_pool_dir="$case_dir/primary/checkout"
+  mkdir -p "$case_dir/primary"
+  git -C "$case_dir/project" worktree add -q --detach "$not_pool_dir" main
   # Write worktree=$not_pool_dir directly (not write_meta + an appended
   # override): a second worktree= line makes the value ambiguous to
   # fm_backend_meta_exact_value's exactly-one-occurrence check, which refuses
@@ -3776,7 +3712,9 @@ SH
     "worktree=$not_pool_dir" \
     "project=$case_dir/project" \
     "kind=ship" \
-    "mode=local-only"
+    "mode=local-only" \
+    "spawn_gen=teardown-test-task-x1"
+  seed_backlog_in_flight "$case_dir"
 
   ( cd "$not_pool_dir" && exec sleep 300 ) &
   pid=$!
@@ -3788,18 +3726,22 @@ SH
   run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
 
   expect_code 1 "$rc" "worktree-mismatch-refusal: teardown should refuse"
-  assert_grep "not a treehouse-managed pool worktree" "$case_dir/stderr" \
+  assert_grep "is not a Treehouse pool slot of project" "$case_dir/stderr" \
     "worktree-mismatch-refusal: teardown did not explain the mismatch refusal"
   assert_no_grep "reaping leaked" "$case_dir/stderr" \
     "worktree-mismatch-refusal: teardown attempted to reap processes before refusing"
   kill -0 "$pid" 2>/dev/null || fail "worktree-mismatch-refusal: a process outside the pool was touched before refusal"
   assert_present "$case_dir/state/task-x1.meta" \
     "worktree-mismatch-refusal: teardown removed task metadata after refusing"
+  assert_absent "$case_dir/state/task-x1.backlog-close" \
+    "worktree-mismatch-refusal: the refusal left a pending-close record a later session start would replay"
+  [ "$(backlog_row_state "$case_dir")" = in_flight ] \
+    || fail "worktree-mismatch-refusal: the refusal changed the backlog row: $(backlog_row_state "$case_dir")"
   assert_present "$case_dir/wt" \
     "worktree-mismatch-refusal: teardown removed the real pool worktree after refusing"
   kill -KILL "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
-  pass "a worktree= that is not treehouse-managed refuses before touching a single process, even under --force"
+  pass "a worktree= that is not a Treehouse pool slot refuses before touching a single process, even under --force"
 }
 
 # --- Claude hook cleanup tests ---
@@ -3962,24 +3904,14 @@ test_claude_hook_left_when_treehouse_status_is_inconclusive() {
   add_fork_with_pushed_branch "$case_dir"
   add_claude_hook "$case_dir"
 
-  # Override the treehouse mock so a LATER `treehouse status` call errors:
-  # the worktree= pool-membership guard (Fix 0, checked first) must still see
-  # a normal pool listing so this test reaches the hook-cleanup code path at
-  # all, but the second call - worktree_is_in_use, made from
-  # remove_claude_hook_file - errors, making the in-use state genuinely
-  # unknown rather than "not in use". Removing the hook on an inconclusive
-  # check would be the same mistake this fix exists to close.
-  cat > "$case_dir/fakebin/treehouse" <<SH
+  # Override the treehouse mock so `treehouse status` - the in-use check
+  # remove_claude_hook_file makes through worktree_is_in_use - errors, making
+  # the in-use state genuinely unknown rather than "not in use". Removing the
+  # hook on an inconclusive check would be the same mistake this fix exists to
+  # close. Every other treehouse call still succeeds, so teardown completes.
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-count_file="$case_dir/.fm-test-treehouse-status-calls"
-if [ "\${1:-}" = status ]; then
-  n=\$(( \$(cat "\$count_file" 2>/dev/null || echo 0) + 1 ))
-  printf '%s' "\$n" > "\$count_file"
-  if [ "\$n" -eq 1 ]; then
-    wt=\$(cd ../wt 2>/dev/null && pwd -P)
-    [ -n "\$wt" ] && printf '1     leased       %s\n' "\$wt"
-    exit 0
-  fi
+if [ "${1:-}" = status ]; then
   echo "treehouse: internal error" >&2
   exit 1
 fi
@@ -4002,11 +3934,10 @@ SH
 test_claude_hook_left_when_treehouse_binary_is_missing() {
   local case_dir rc
   case_dir=$(make_case hook-cleanup-no-treehouse-binary)
-  # backend=orca: Fix 0's treehouse-membership guard is skipped for Orca (its
-  # worktrees are never treehouse pool members), so this is the only main-task
-  # path that still reaches the hook-cleanup code when treehouse is entirely
-  # absent from PATH - every non-orca task refuses earlier, at Fix 0, before a
-  # missing treehouse binary could ever reach remove_claude_hook_file.
+  # backend=orca: a non-orca teardown needs treehouse itself to return the
+  # pool slot, so Orca - which removes its own worktree - is the main-task path
+  # that runs the hook cleanup and still completes when treehouse is entirely
+  # absent from PATH.
   rm -f "$case_dir/fakebin/treehouse"
   fm_write_meta "$case_dir/state/task-x1.meta" \
     "window=fm-task-x1" \
@@ -4129,7 +4060,7 @@ test_process_spawned_during_grace_is_reaped_on_later_pass
 test_persistent_scan_refuses_after_bounded_retries
 test_process_exit_during_identity_lookup_does_not_refuse
 test_run_abort_precedes_process_reap_precedes_worktree_removal
-test_worktree_not_treehouse_managed_refuses_before_reaping_anything
+test_worktree_not_a_pool_slot_refuses_before_reaping_anything
 test_claude_hook_removed_on_normal_teardown
 test_claude_hook_left_when_referenced_state_dir_is_wrong
 test_claude_hook_left_when_no_meta_in_referenced_state
