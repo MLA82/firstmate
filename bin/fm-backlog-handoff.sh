@@ -61,8 +61,10 @@
 # original batch is retried, so it cannot discard wake intent for work that
 # already moved. No two-phase journal exists.
 # Every newly durable backlog delivery attempts one marked wake to the receiving
-# endpoint. A local route moves directly into the destination backlog, and a
-# missing or rejected local wake makes that command fail with the move intact so
+# endpoint, naming the routed item keys; a remote batch that reuses a
+# still-pending wake adds its keys to that wake's list. A local route moves
+# directly into the destination backlog, and a missing or rejected local wake
+# makes that command fail with the move intact so
 # rerunning the same handoff retries its prepared wake intent. After a durable
 # remote receipt, the outbox is released and the handoff succeeds regardless of
 # the best-effort wake outcome; an undelivered remote wake remains separately
@@ -97,14 +99,13 @@ MAIN_BACKLOG="$DATA/backlog.md"
 
 RECEIVER_WAKE_MESSAGE='New routed work is in your backlog. Run bin/fm-session-start.sh now, then act on the routed task.'
 
-# Two consecutive handoffs to the same receiver used to send this exact same
-# fixed line with no indication which task either one named, so a receiver
-# reading them close together had no way to tell a second genuine handoff
-# apart from a duplicate of the first - a real 2026-08-25 incident (see
-# backlog item handoff-nachricht-nennt-auftrag-nicht) where the receiver read
-# an unlabeled second handoff as an unproven repeat of the first and blocked
-# on it. Appended, never inserted, so the fixed sentence itself stays a
-# stable substring for every existing caller and test that greps for it.
+# Names the routed item keys so a receiver can tell a second genuine handoff
+# apart from a duplicate of the first; an unlabeled fixed line once made a
+# receiver block on a real second handoff as an unproven repeat (regression:
+# test_two_consecutive_handoffs_name_their_own_items in
+# tests/fm-backlog-handoff.test.sh). Appended, never inserted, so the fixed
+# sentence itself stays a stable substring for every existing caller and test
+# that greps for it.
 receiver_wake_message() {  # <item-key>...
   local ids
   [ "$#" -gt 0 ] || { printf '%s' "$RECEIVER_WAKE_MESSAGE"; return; }
