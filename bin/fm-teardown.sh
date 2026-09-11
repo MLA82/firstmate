@@ -1506,6 +1506,9 @@ TEARDOWN_PROCEVENT_RESTORE_FAILED=4
 
 # True when treehouse/git stderr shows the transient index.lock "File exists" race.
 # Other return failures must not enter the retry path.
+# Matches git's own English text, so every `treehouse return` this guards runs
+# under LC_ALL=C - a non-English operator locale otherwise disables the retry
+# (pinned by test_transient_index_lock_retry_is_locale_independent).
 treehouse_return_is_index_lock_error() {
   local text=$1
   printf '%s\n' "$text" | grep -Eq "Unable to create ['\"].*index\\.lock['\"]: File exists"
