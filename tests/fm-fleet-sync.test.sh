@@ -19,10 +19,10 @@
 # single-project forms, while a symlinked clone dir still syncs.
 # It also pins the tracked-vs-untracked dirty split: a clone with only untracked
 # files (e.g. an ignored tool cache) still fast-forwards instead of going STUCK,
-# the same relaxation applies to the detached-HEAD recovery checkout, a
-# fast-forward genuinely blocked by a colliding untracked file is reported as a
-# skip, and a recovery checkout blocked the same way stays STUCK carrying git's
-# own reason rather than swallowing it.
+# the same relaxation applies to the detached-HEAD recovery checkout, and a
+# fast-forward or recovery checkout genuinely blocked by a colliding untracked
+# file stays STUCK carrying git's own reason rather than swallowing it, naming a
+# re-attach that already happened.
 #
 # It also pins the orphaned .git/packed-refs.lock recovery in the fetch step
 # (fetch_with_packed_refs_lock_guard, backed by bin/fm-lock-lib.sh's shared
@@ -393,28 +393,59 @@ test_detached_checkout_collision_is_stuck_with_reason() {
   pass "a recovery checkout blocked by a colliding untracked file stays STUCK with git's reason"
 }
 
-test_untracked_collision_blocks_ff_cleanly() {
+test_untracked_collision_blocks_ff_stuck_with_reason() {
   local home clone work out
   home=$(new_home)
   clone=$(build_pair "$home" omicron)
   work="$home/work-omicron"
   # Origin adds a new tracked file; the clone independently has an untracked
   # file at that same path, so git's own ff-only protection must refuse the
-  # merge rather than silently overwrite it.
+  # merge rather than silently overwrite it. That never clears on its own, so
+  # it stays loudly STUCK with git's reason.
   commit_file "$work" new.txt "from-origin" "add new.txt"
   git -C "$work" push -q origin main
   printf 'local-untracked-version\n' > "$clone/new.txt"
 
-  out=$(run_sync "$home" "$clone")
+  out=$(LC_ALL=C run_sync "$home" "$clone")
 
-  assert_contains "$out" "omicron: skipped: fast-forward failed" \
-    "untracked collision is reported as a clean skip, not swallowed"
-  assert_not_contains "$out" "STUCK" "untracked collision is a skip, not STUCK"
+  assert_contains "$out" "omicron: STUCK: on branch main, " \
+    "a colliding fast-forward stays loudly STUCK"
+  assert_contains "$out" "- needs attention (fast-forward failed: " \
+    "the STUCK line names the refused fast-forward"
+  assert_contains "$out" "untracked working tree files would be overwritten" \
+    "the STUCK line carries git's own reason for refusing the merge"
+  assert_not_contains "$out" "skipped" "a refused fast-forward is STUCK, not a skip"
   grep -q "local-untracked-version" "$clone/new.txt" \
     || fail "colliding untracked file content was overwritten"
   [ "$(head_sha "$clone")" != "$(git -C "$clone" rev-parse origin/main)" ] \
     || fail "clone should not have fast-forwarded through the collision"
-  pass "a fast-forward blocked by a colliding untracked file is reported cleanly, not swallowed"
+  pass "a fast-forward blocked by a colliding untracked file stays STUCK with git's reason"
+}
+
+test_recovered_then_ff_collision_names_reattach() {
+  local home clone work out
+  home=$(new_home)
+  clone=$(build_pair "$home" rho)
+  work="$home/work-rho"
+  # Detached at local main's own commit, so the re-attach checkout succeeds;
+  # origin then adds a tracked file colliding with an untracked one here, so
+  # the fast-forward after the re-attach is the step git refuses.
+  git -C "$clone" checkout --detach --quiet
+  commit_file "$work" new.txt "from-origin" "add new.txt"
+  git -C "$work" push -q origin main
+  printf 'local-untracked-version\n' > "$clone/new.txt"
+
+  out=$(LC_ALL=C run_sync "$home" "$clone")
+
+  assert_contains "$out" "rho: STUCK: on branch main, " \
+    "a refused fast-forward after a re-attach stays loudly STUCK"
+  assert_contains "$out" "- needs attention (re-attached main, fast-forward failed: " \
+    "the STUCK line still reports the re-attach that already happened"
+  [ "$(git -C "$clone" symbolic-ref --short HEAD 2>/dev/null)" = "main" ] \
+    || fail "expected the clone re-attached to main"
+  grep -q "local-untracked-version" "$clone/new.txt" \
+    || fail "colliding untracked file content was overwritten"
+  pass "a re-attach followed by a refused fast-forward is STUCK and still names the re-attach"
 }
 
 test_non_default_branch_is_stuck_untouched() {
@@ -802,7 +833,8 @@ test_dirty_is_stuck_untouched
 test_untracked_only_advances_not_stuck
 test_detached_untracked_only_recovers
 test_detached_checkout_collision_is_stuck_with_reason
-test_untracked_collision_blocks_ff_cleanly
+test_untracked_collision_blocks_ff_stuck_with_reason
+test_recovered_then_ff_collision_names_reattach
 test_non_default_branch_is_stuck_untouched
 test_diverged_is_stuck_untouched
 test_on_default_clean_behind_fast_forwards

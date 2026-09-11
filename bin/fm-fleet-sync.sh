@@ -15,7 +15,7 @@
 # to .gitignore) never block a fast-forward: git itself refuses a checkout or
 # ff-only merge that would overwrite an untracked file, so that self-protection
 # is relied on instead of treating untracked-only as dirty. A re-attach checkout
-# git refuses is still reported STUCK, carrying git's reason.
+# or fast-forward git refuses is still reported STUCK, carrying git's reason.
 # Still skips (benignly) local-only/no-origin projects, missing remotes/branches,
 # and fetch failures.
 # A candidate under projects/ must be the root of its own work tree: git discovery
@@ -442,7 +442,8 @@ sync_project() {
     if [ -n "$merge_output" ]; then
       reason="$reason: $(first_line "$merge_output")"
     fi
-    echo "$label: skipped: $reason"
+    [ "$recovered" = no ] || reason="re-attached $DEFAULT, $reason"
+    report_stuck "$(stuck_state)" "$reason"
     return 0
   fi
   after=$(git -C "$PROJ" rev-parse --short "$DEFAULT") || {
