@@ -449,7 +449,8 @@ SH
 # (simulating a dying crew git process finishing) so the next retry succeeds.
 # The first failure always reports the lock path even if the file is removed in
 # the same attempt - matching the production race where the lock self-clears
-# between the failed return and the supervisor's existence check.
+# between the failed return and the supervisor's existence check. Like real git,
+# the signature is English only under LC_ALL=C and localized (German) otherwise.
 add_transient_lock_treehouse() {
   local case_dir=$1
   cat > "$case_dir/fakebin/treehouse" <<'SH'
@@ -478,12 +479,13 @@ if [ "${1:-}" = return ]; then
   if [ "$count" -eq 1 ]; then
     # Emit the real git signature, then drop the lock so a lock-existence-only
     # recovery path would wrongly abort without retrying.
-    if [ -n "$lock" ]; then
-      echo "fatal: Unable to create '$lock': File exists." >&2
-      rm -f "$lock"
+    shown=${lock:-index.lock}
+    if [ "${LC_ALL:-}" = C ]; then
+      echo "fatal: Unable to create '$shown': File exists." >&2
     else
-      echo "fatal: Unable to create 'index.lock': File exists." >&2
+      echo "fatal: Konnte '$shown' nicht erstellen: Die Datei existiert bereits." >&2
     fi
+    [ -n "$lock" ] && rm -f "$lock"
     exit 128
   fi
   exit 0
@@ -1729,30 +1731,39 @@ test_persistent_index_lock_exhausts_retries_and_refuses_loudly() {
   pass "persistent index.lock exhausts retries and refuses without force-removing the lock"
 }
 
-# treehouse_return_is_index_lock_error: the English-text regex must match the
-# English git signature and must NOT match the German locale variant. The
-# LC_ALL=C prefix on treehouse return (teardown_treehouse_return) guarantees
-# the subprocess always emits English, but the unit test pins the regex
-# contract itself so it cannot silently lose the pattern.
-test_index_lock_error_match_and_no_match() {
-  # Inline the function under test so we can exercise it in isolation.
-  treehouse_return_is_index_lock_error() {
-    local text=$1
-    printf '%s\n' "$text" | grep -Eq "Unable to create ['\"].*index\\.lock['\"\]: File exists"
-  }
+test_transient_index_lock_retry_is_locale_independent() {
+  local case_dir rc lock attempt_file
+  case_dir=$(make_case transient-index-lock-locale)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit "$case_dir" "shippable work"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
 
-  # English text - the exact format git emits under LC_ALL=C
-  treehouse_return_is_index_lock_error "fatal: Unable to create 'index.lock': File exists."
-  expect_code 0 $? "English: regex should match the English git error signature"
+  add_transient_lock_treehouse "$case_dir"
+  add_lsof_no_holder "$case_dir"
 
-  treehouse_return_is_index_lock_error "fatal: Unable to create '/tmp/repo/.git/index.lock': File exists."
-  expect_code 0 $? "English: regex should match the English git error with full path"
+  lock=$(git_index_lock_path "$case_dir/wt")
+  mkdir -p "$(dirname "$lock")"
+  : > "$lock"
+  touch "$lock"
 
-  # German locale text - what git emits under de_DE.UTF-8 without LC_ALL=C
-  treehouse_return_is_index_lock_error "fatal: Konnte '/tmp/repo/.git/index.lock' nicht erstellen: Die Datei existiert bereits." && rc=0 || rc=$?
-  expect_code 1 "$rc" "German: regex must NOT match the German locale git error (LC_ALL=C is required)"
+  attempt_file="$case_dir/treehouse-attempts"
+  : > "$attempt_file"
 
-  pass "treehouse_return_is_index_lock_error correctly matches English and rejects German text"
+  set +e
+  LC_ALL= LANG=de_DE.UTF-8 \
+  TREEHOUSE_ATTEMPT_FILE="$attempt_file" \
+  FM_TREEHOUSE_RETURN_LOCK_RETRIES=2 \
+  FM_TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS=0 \
+  FM_STALE_WORKTREE_LOCK_AGE_SECS=3600 \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "locale-index-lock: teardown under a German shell locale should still recognize the lock and succeed on retry"
+  assert_grep "succeeded on retry" "$case_dir/stderr" \
+    "locale-index-lock: teardown under a German shell locale did not retry the transient lock"
+  pass "transient index.lock is recognized and retried regardless of the operator's shell locale"
 }
 
 test_empty_retry_wait_uses_default_without_aborting() {
@@ -3744,7 +3755,7 @@ test_non_linked_index_lock_path_is_checked_from_worktree
 test_index_lock_mtime_read_failure_refuses
 test_transient_index_lock_clears_after_first_attempt_and_retry_succeeds
 test_persistent_index_lock_exhausts_retries_and_refuses_loudly
-test_index_lock_error_match_and_no_match
+test_transient_index_lock_retry_is_locale_independent
 test_empty_retry_wait_uses_default_without_aborting
 test_fractional_legacy_retry_wait_refuses_without_arithmetic_error
 test_parked_own_run_is_aborted_before_teardown
