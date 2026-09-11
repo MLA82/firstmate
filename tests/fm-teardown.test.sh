@@ -688,6 +688,21 @@ make_path_without_lsof() {  # <case-dir>
   printf '%s\n' "$path_dir"
 }
 
+# Build the teardown test's executable search path without treehouse, so a
+# missing treehouse binary is genuinely absent rather than merely un-stubbed
+# in fakebin - a host that installs a real treehouse elsewhere on PATH must
+# not leak it back in.
+make_path_without_treehouse() {  # <case-dir>
+  local case_dir=$1 path_dir="$1/path-without-treehouse" cmd resolved
+  mkdir -p "$path_dir"
+  for cmd in awk bash basename cat chmod cp cut date dirname env find gh git grep head hostname id jq ln \
+    lsof mkdir mktemp mv node perl ps readlink realpath rm sed sh sleep sort stat tail timeout tr uname wc xargs; do
+    resolved=$(command -v "$cmd" 2>/dev/null) || continue
+    case "$resolved" in /*) ln -sf "$resolved" "$path_dir/$cmd" ;; esac
+  done
+  printf '%s\n' "$path_dir"
+}
+
 test_local_only_fork_remote_allows() {
   local case_dir rc
   case_dir=$(make_case fork-allow)
@@ -3984,6 +3999,52 @@ SH
   pass "Claude hook is left alone when treehouse status itself errors (inconclusive, not not-in-use)"
 }
 
+test_claude_hook_left_when_treehouse_binary_is_missing() {
+  local case_dir rc
+  case_dir=$(make_case hook-cleanup-no-treehouse-binary)
+  # backend=orca: Fix 0's treehouse-membership guard is skipped for Orca (its
+  # worktrees are never treehouse pool members), so this is the only main-task
+  # path that still reaches the hook-cleanup code when treehouse is entirely
+  # absent from PATH - every non-orca task refuses earlier, at Fix 0, before a
+  # missing treehouse binary could ever reach remove_claude_hook_file.
+  rm -f "$case_dir/fakebin/treehouse"
+  fm_write_meta "$case_dir/state/task-x1.meta" \
+    "window=fm-task-x1" \
+    "endpoint_task_id=task-x1" \
+    "terminal=term-task-x1" \
+    "worktree=$case_dir/wt" \
+    "project=$case_dir/project" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=local-only" \
+    "backend=orca" \
+    "orca_worktree_id=orca-wt-task-x1"
+  add_claude_hook "$case_dir"
+
+  cat > "$case_dir/fakebin/orca" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = worktree ] && [ "\${2:-}" = show ]; then
+  printf '{"ok":true,"result":{"worktree":{"id":"orca-wt-task-x1","path":"$case_dir/wt"}}}\n'
+fi
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/orca"
+
+  set +e
+  FM_TEARDOWN_TEST_PATH=$(make_path_without_treehouse "$case_dir") \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "hook-cleanup-no-treehouse-binary: teardown should succeed"
+  ! grep -q REFUSED "$case_dir/stderr" || fail "hook-cleanup-no-treehouse-binary: teardown printed a REFUSED line"
+  # The hook should be LEFT ALONE because a missing treehouse binary must make
+  # the in-use state unknown exactly like an erroring `treehouse status` does
+  # above, not silently skip the check and fall through to `rm -f`.
+  assert_hook_present "$case_dir"
+  pass "Claude hook is left alone when the treehouse binary is entirely missing from PATH"
+}
+
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
@@ -4075,3 +4136,4 @@ test_claude_hook_left_when_no_meta_in_referenced_state
 test_claude_hook_left_when_worktree_is_in_use
 test_claude_hook_removed_when_worktree_not_in_use
 test_claude_hook_left_when_treehouse_status_is_inconclusive
+test_claude_hook_left_when_treehouse_binary_is_missing

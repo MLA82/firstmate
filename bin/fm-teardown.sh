@@ -1228,10 +1228,12 @@ remove_claude_hook_file() {  # <hook_path> <expected_state_dir> <id> <wt> <proj>
   # Verify the meta file for this task exists in the referenced state directory.
   local meta_path="${state_ref}/${id}.meta"
   [ -f "$meta_path" ] || return 0
-  # Check treehouse status: refuse if worktree is in-use.
-  if [ -n "$wt" ] && [ -n "$proj" ] && command -v treehouse >/dev/null 2>&1; then
+  # Check treehouse status: refuse if worktree is in-use. A missing
+  # treehouse binary must not skip this check - worktree_is_in_use itself
+  # fails closed toward "in use" when `treehouse status` cannot run at all.
+  if [ -n "$wt" ] && [ -n "$proj" ]; then
     if worktree_is_in_use "$wt" "$proj"; then
-      return 1  # Worktree is in-use; leave the hook alone.
+      return 1  # Worktree is in-use, or its state is unknown; leave the hook alone.
     fi
   fi
   # All safety checks passed.
