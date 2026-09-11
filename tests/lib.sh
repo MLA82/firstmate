@@ -523,7 +523,9 @@ _fm_dac_override_drop_blocks_write() {
 # fm_dir_block_writes <dir>: chmod <dir> unwritable and, as root, prove the
 # block actually holds before returning success. Leaves <dir> writable again
 # and refuses (nonzero, no diagnostic needed - the caller decides how loud to
-# be) when running as root and the block cannot be proven.
+# be) when running as root and the block cannot be proven; a setpriv that
+# cannot apply the drop at all fails the test outright instead (see
+# fm_run_without_dac_override).
 #
 # Split out from fm_run_dir_readonly for the one shape that wrapper cannot
 # cover: a caller whose protected write happens after the command that
