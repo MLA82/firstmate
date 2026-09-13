@@ -754,6 +754,30 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
   pass "a Treehouse slot claim names the launched task, refuses when unclaimable, and a locked abort drops its claim and lease"
 }
 
+# The pane can keep reporting a stale path after Treehouse leased a different
+# slot. The abort must return the lease Treehouse recorded for this task, not
+# whatever slot the pane happened to name.
+test_aborted_spawn_returns_the_lease_treehouse_recorded() {
+  local rec id out status leased
+  id='pool-slot-stale-pane-r1'
+  rec=$(make_case slot-stale-pane "$id")
+  read_case_record "$rec"
+  lay_out_as_pool_slot
+  leased="$CASE_DIR/slots/2/project"
+  mkdir -p "$CASE_DIR/slots/2"
+  git -C "$PROJECT_DIR" worktree add --quiet --detach "$leased" "$INITIAL_SHA"
+  printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]}\n' "$POOL_DIR" "$leased" \
+    > "$CASE_DIR/slots/treehouse-state.json"
+  out=$(FM_FAKE_LEASE_PATH="$leased" run_spawn "$id" --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched in a slot Treehouse did not lease to it"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "the aborted spawn published task metadata"
+  jq -e --arg path "$leased" '.worktrees[] | select(.path == $path) | .leased != true' \
+    "$CASE_DIR/slots/treehouse-state.json" >/dev/null \
+    || fail "the aborted spawn kept the lease Treehouse recorded for it: $out"
+  pass "an aborted spawn returns the lease Treehouse recorded for it, not the slot its pane reported"
+}
+
 test_recorded_slot_blocks_reissue_before_get() {
   local place rec id out status owner_home old_head old_state
   for place in local registered metadata; do
@@ -796,6 +820,7 @@ test_recorded_slot_blocks_reissue_before_get() {
 test_recorded_slot_blocks_reissue_before_get
 test_remote_seeded_home_spawns_from_treehouse_pool
 test_pool_slot_claim_follows_the_spawn_outcome
+test_aborted_spawn_returns_the_lease_treehouse_recorded
 test_linked_spawning_home_rejects_primary_before_refresh
 test_stale_pool_base_refreshes_before_branching
 test_non_main_default_branch_refreshes_before_branching

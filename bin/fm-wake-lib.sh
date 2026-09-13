@@ -1336,11 +1336,20 @@ fm_treehouse_collect_states() {  # <record-state>
   done
 }
 
+# Every Treehouse lease-state reader needs jq; without it they refuse loudly
+# rather than reading the pool as holding no slot or no lease.
+fm_treehouse_require_jq() {
+  command -v jq >/dev/null 2>&1 && return 0
+  echo "REFUSED: jq is required to read Treehouse lease state; install jq (bin/fm-bootstrap.sh reports it as MISSING) and retry" >&2
+  return 1
+}
+
 # Read one native durable lease from the pool's own state. Unlike process
 # occupancy, leased=true survives the worker exiting. Require one exact path
 # entry and a nonempty identity; malformed or missing state proves nothing.
 fm_treehouse_slot_lease() {  # <worktree>
   local slot=$1 state
+  fm_treehouse_require_jq || return 1
   if [ -d "$slot" ]; then
     slot=$(CDPATH='' cd -- "$slot" && pwd -P) || return 1
   fi
@@ -1360,6 +1369,7 @@ fm_treehouse_slot_lease() {  # <worktree>
 # has no entry here and is never evidence of anything.
 fm_treehouse_slot_registered() {  # <worktree>
   local slot=$1 state
+  fm_treehouse_require_jq || return 1
   if [ -d "$slot" ]; then
     slot=$(CDPATH='' cd -- "$slot" && pwd -P) || return 1
   fi
@@ -1379,6 +1389,7 @@ fm_treehouse_slot_registered() {  # <worktree>
 fm_treehouse_require_reserved_records() {  # <project>
   local project=$1 identity other_identity state meta recorded_project path field
   identity=$(fm_treehouse_project_lock_path "$project") || return 1
+  fm_treehouse_require_jq || return 1
   fm_treehouse_collect_states "$STATE" || return 1
   for state in "${TREEHOUSE_OWNER_STATES[@]}"; do
     for meta in "$state"/*.meta; do
