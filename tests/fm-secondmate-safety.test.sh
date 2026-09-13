@@ -1990,6 +1990,100 @@ EOF
   pass "forced secondmate teardown refuses duplicated descendant pool slots"
 }
 
+test_secondmate_force_teardown_refuses_child_slot_recorded_by_parent() {
+  local home subhome childproj childwt fakebin log err rc rec
+  home="$TMP_ROOT/force-parent-slot-home"
+  subhome="$TMP_ROOT/force-parent-slot-subhome"
+  childproj="$subhome/projects/alpha"
+  childwt="$TMP_ROOT/force-parent-slot-pool/1/alpha"
+  err="$TMP_ROOT/force-parent-slot.err"
+  mkdir -p "$home/state" "$home/data" "$subhome/state" "$(dirname "$childwt")"
+  fm_git_worktree "$childproj" "$childwt" parent-slot-child
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$childwt" \
+    > "$TMP_ROOT/force-parent-slot-pool/treehouse-state.json"
+  printf 'domain\n' > "$subhome/.fm-secondmate-home"
+  cat > "$home/state/domain.meta" <<EOF
+window=firstmate:fm-domain
+worktree=$subhome
+project=$subhome
+harness=echo
+kind=secondmate
+mode=secondmate
+yolo=off
+home=$subhome
+projects=alpha
+EOF
+  printf '%s\n' '- domain - design domain (home: '"$subhome"'; scope: design domain; projects: alpha; added 2026-06-22)' > "$home/data/secondmates.md"
+  # The secondmate's landed child was never torn down, and its unclaimed slot
+  # now belongs to a task recorded in the parent's own state.
+  for rec in "$subhome/state/stale-child" "$home/state/live-crew"; do
+    cat > "$rec.meta" <<EOF
+window=firstmate:fm-${rec##*/}
+worktree=$childwt
+project=$childproj
+harness=echo
+kind=ship
+mode=no-mistakes
+yolo=off
+EOF
+  done
+  fakebin=$(make_fake_tmux "$TMP_ROOT/force-parent-slot-fake")
+  log="$TMP_ROOT/force-parent-slot-fake/tmux.log"
+
+  set +e
+  PATH="$fakebin:$PATH" FM_HOME="$home" FM_FAKE_TMUX_LOG="$log" \
+    FM_FAKE_TMUX_CAPTURE="$TMP_ROOT/force-parent-slot-fake/pane.txt" \
+    "$ROOT/bin/fm-teardown.sh" domain --force >/dev/null 2>"$err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "forced secondmate teardown returned a child slot the parent's task records"
+  [ -d "$childwt" ] || fail "forced secondmate teardown removed the parent's task slot"
+  [ -e "$subhome/state/stale-child.meta" ] || fail "forced secondmate teardown removed the stale child record"
+  [ -e "$home/state/live-crew.meta" ] || fail "forced secondmate teardown removed the parent's task record"
+  grep -F 'kill-window' "$log" >/dev/null && fail "forced secondmate teardown killed a child before detecting its slot collision"
+  grep -F 'treehouse return' "$log" >/dev/null && fail "forced secondmate teardown returned the parent's task slot"
+  grep -F 'live-crew' "$err" >/dev/null \
+    || fail "forced secondmate teardown did not name the parent's task holding the slot: $(cat "$err")"
+  pass "forced secondmate teardown refuses a child slot recorded in the parent's own state"
+}
+
+test_home_seed_refuses_recorded_unleased_firstmate_slot() {
+  local home acquired pool slot fakebin log lease err
+  home="$TMP_ROOT/dash-recorded-slot-home"
+  acquired="$TMP_ROOT/dash-recorded-slot-acquired"
+  pool="$TMP_ROOT/dash-recorded-slot-pool"
+  err="$TMP_ROOT/dash-recorded-slot.err"
+  mkdir -p "$home/projects" "$home/data" "$home/state" "$pool/1/firstmate"
+  home=$(cd "$home" && pwd -P)
+  pool=$(cd "$pool" && pwd -P)
+  slot="$pool/1/firstmate"
+  fm_git_init_commit "$home/projects/alpha"
+  fm_git_add_origin "$home/projects/alpha" "$TMP_ROOT/remotes/dash-recorded-slot-alpha.git"
+  printf '%s\n' '- alpha [direct-PR] - alpha project (added 2026-06-22)' > "$home/data/projects.md"
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$slot" > "$pool/treehouse-state.json"
+  # A landed task on the Firstmate project itself was never torn down, and its
+  # process-only slot is free for the next get again.
+  printf 'project=%s\nworktree=%s\nkind=ship\n' "$ROOT" "$slot" > "$home/state/stale-crew.meta"
+  fakebin=$(make_fake_tmux "$TMP_ROOT/dash-recorded-slot-fake")
+  log="$TMP_ROOT/dash-recorded-slot-fake/tmux.log"
+  lease="$TMP_ROOT/dash-recorded-slot-fake/lease"
+
+  if PATH="$fakebin:$PATH" FM_HOME="$home" FM_FAKE_TREEHOUSE_HOME="$acquired" FM_FAKE_TMUX_LOG="$log" \
+    FM_FAKE_TREEHOUSE_LEASE_FILE="$lease" \
+    FM_SECONDMATE_CHARTER='dash recorded scope' FM_SECONDMATE_SCOPE='dash recorded scope' \
+    "$ROOT/bin/fm-home-seed.sh" dash - alpha >/dev/null 2>"$err"; then
+    fail "home seeding leased a Firstmate slot while another task still records it"
+  fi
+  grep -F "$home/state/stale-crew.meta" "$err" >/dev/null \
+    || fail "home seeding did not name the record still holding the slot: $(cat "$err")"
+  grep -F 'treehouse get' "$log" >/dev/null && fail "home seeding requested a slot before refusing"
+  [ ! -e "$lease" ] || fail "home seeding took a Treehouse lease despite the recorded slot"
+  [ ! -e "$acquired" ] || fail "home seeding provisioned a home despite the recorded slot"
+  [ ! -e "$home/data/secondmates.md" ] || fail "home seeding registered a secondmate despite the recorded slot"
+  [ -e "$home/state/stale-crew.meta" ] || fail "home seeding removed the stale task record"
+  pass "home seeding refuses to lease while a stale record names an unleased Firstmate slot"
+}
+
 test_secondmate_force_teardown_preserves_child_on_unproven_lock() {
   local home subhome childproj childwt fakebin log err rc lock
   home="$TMP_ROOT/force-lock-home"
@@ -3011,6 +3105,8 @@ test_secondmate_teardown_refuses_failed_leased_home_return
 test_secondmate_teardown_removes_plain_clone_home_without_treehouse_return
 test_secondmate_force_teardown_discards_child_work
 test_secondmate_force_teardown_refuses_duplicated_child_slot
+test_secondmate_force_teardown_refuses_child_slot_recorded_by_parent
+test_home_seed_refuses_recorded_unleased_firstmate_slot
 test_secondmate_force_teardown_preserves_child_on_unproven_lock
 test_secondmate_force_teardown_allows_non_state_operational_dir_symlinks_inside_home
 test_secondmate_force_teardown_refuses_operational_dir_symlink_outside_home
