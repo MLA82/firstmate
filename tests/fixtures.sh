@@ -332,13 +332,22 @@ if [ "${1:-}" = return ]; then
   mv "$state.tmp" "$state"
   exit 0
 fi
+if [ "${1:-}" = status ]; then
+  state="$(dirname "$(dirname "${FM_FAKE_PANE_PATH:-/}")")/treehouse-state.json"
+  if [ -f "$state" ]; then
+    jq '.worktrees' "$state"
+  else
+    printf '[]\n'
+  fi
+  exit 0
+fi
 [ "${1:-}" = get ] || exit 0
 holder=
 while [ "$#" -gt 0 ]; do
   case "$1" in --lease-holder) holder=$2; shift ;; esac
   shift
 done
-path=${FM_FAKE_PANE_PATH:-}
+path=${FM_FAKE_LEASE_PATH:-${FM_FAKE_PANE_PATH:-}}
 if [ -n "$path" ]; then
   state="$(dirname "$(dirname "$path")")/treehouse-state.json"
   if [ -f "$state" ]; then

@@ -2048,40 +2048,64 @@ EOF
 }
 
 test_home_seed_refuses_recorded_unleased_firstmate_slot() {
-  local home acquired pool slot fakebin log lease err
-  home="$TMP_ROOT/dash-recorded-slot-home"
-  acquired="$TMP_ROOT/dash-recorded-slot-acquired"
-  pool="$TMP_ROOT/dash-recorded-slot-pool"
-  err="$TMP_ROOT/dash-recorded-slot.err"
-  mkdir -p "$home/projects" "$home/data" "$home/state" "$pool/1/firstmate"
-  home=$(cd "$home" && pwd -P)
-  pool=$(cd "$pool" && pwd -P)
-  slot="$pool/1/firstmate"
-  fm_git_init_commit "$home/projects/alpha"
-  fm_git_add_origin "$home/projects/alpha" "$TMP_ROOT/remotes/dash-recorded-slot-alpha.git"
-  printf '%s\n' '- alpha [direct-PR] - alpha project (added 2026-06-22)' > "$home/data/projects.md"
-  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$slot" > "$pool/treehouse-state.json"
-  # A landed task on the Firstmate project itself was never torn down, and its
-  # process-only slot is free for the next get again.
-  printf 'project=%s\nworktree=%s\nkind=ship\n' "$ROOT" "$slot" > "$home/state/stale-crew.meta"
-  fakebin=$(make_fake_tmux "$TMP_ROOT/dash-recorded-slot-fake")
-  log="$TMP_ROOT/dash-recorded-slot-fake/tmux.log"
-  lease="$TMP_ROOT/dash-recorded-slot-fake/lease"
-
-  if PATH="$fakebin:$PATH" FM_HOME="$home" FM_FAKE_TREEHOUSE_HOME="$acquired" FM_FAKE_TMUX_LOG="$log" \
-    FM_FAKE_TREEHOUSE_LEASE_FILE="$lease" \
-    FM_SECONDMATE_CHARTER='dash recorded scope' FM_SECONDMATE_SCOPE='dash recorded scope' \
-    "$ROOT/bin/fm-home-seed.sh" dash - alpha >/dev/null 2>"$err"; then
-    fail "home seeding leased a Firstmate slot while another task still records it"
+  local mode base home acquired pool slot fakebin log lease err bash_env
+  for mode in jq no-jq; do
+    base="$TMP_ROOT/dash-recorded-slot-$mode"
+    home="$base/home"
+    acquired="$base/acquired"
+    pool="$base/pool"
+    err="$base/seed.err"
+    mkdir -p "$home/projects" "$home/data" "$home/state" "$pool/1/firstmate"
+    home=$(cd "$home" && pwd -P)
+    pool=$(cd "$pool" && pwd -P)
+    slot="$pool/1/firstmate"
+    fm_git_init_commit "$home/projects/alpha"
+    fm_git_add_origin "$home/projects/alpha" "$TMP_ROOT/remotes/dash-recorded-slot-$mode-alpha.git"
+    printf '%s\n' '- alpha [direct-PR] - alpha project (added 2026-06-22)' > "$home/data/projects.md"
+    printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$slot" > "$pool/treehouse-state.json"
+    # A landed task on the Firstmate project itself was never torn down, and its
+    # process-only slot is free for the next get again.
+    printf 'project=%s\nworktree=%s\nkind=ship\n' "$ROOT" "$slot" > "$home/state/stale-crew.meta"
+    fakebin=$(make_fake_tmux "$base/fake")
+    log="$base/fake/tmux.log"
+    lease="$base/fake/lease"
+    bash_env=/dev/null
+    if [ "$mode" = no-jq ]; then
+      # Without jq the lease state cannot be read; that must refuse, never pass.
+      bash_env="$base/no-jq.bash"
+      cat > "$bash_env" <<'SH'
+command() {
+  if [ "${1:-}" = -v ] && [ "${2:-}" = jq ]; then
+    return 1
   fi
-  grep -F "$home/state/stale-crew.meta" "$err" >/dev/null \
-    || fail "home seeding did not name the record still holding the slot: $(cat "$err")"
-  grep -F 'treehouse get' "$log" >/dev/null && fail "home seeding requested a slot before refusing"
-  [ ! -e "$lease" ] || fail "home seeding took a Treehouse lease despite the recorded slot"
-  [ ! -e "$acquired" ] || fail "home seeding provisioned a home despite the recorded slot"
-  [ ! -e "$home/data/secondmates.md" ] || fail "home seeding registered a secondmate despite the recorded slot"
-  [ -e "$home/state/stale-crew.meta" ] || fail "home seeding removed the stale task record"
-  pass "home seeding refuses to lease while a stale record names an unleased Firstmate slot"
+  builtin command "$@"
+}
+jq() {
+  return 127
+}
+SH
+    fi
+
+    if PATH="$fakebin:$PATH" BASH_ENV="$bash_env" FM_HOME="$home" FM_FAKE_TREEHOUSE_HOME="$acquired" \
+      FM_FAKE_TMUX_LOG="$log" FM_FAKE_TREEHOUSE_LEASE_FILE="$lease" \
+      FM_SECONDMATE_CHARTER='dash recorded scope' FM_SECONDMATE_SCOPE='dash recorded scope' \
+      "$ROOT/bin/fm-home-seed.sh" dash - alpha >/dev/null 2>"$err"; then
+      fail "$mode: home seeding leased a Firstmate slot while another task still records it"
+    fi
+    if [ "$mode" = jq ]; then
+      grep -F "$home/state/stale-crew.meta" "$err" >/dev/null \
+        || fail "$mode: home seeding did not name the record still holding the slot: $(cat "$err")"
+    else
+      grep -F 'jq is required' "$err" >/dev/null \
+        || fail "$mode: home seeding did not refuse on the missing jq: $(cat "$err")"
+    fi
+    grep -F 'treehouse get' "$log" >/dev/null && fail "$mode: home seeding requested a slot before refusing"
+    [ ! -e "$lease" ] || fail "$mode: home seeding took a Treehouse lease despite the recorded slot"
+    [ ! -e "$acquired" ] || fail "$mode: home seeding provisioned a home despite the recorded slot"
+    [ ! -e "$home/data/secondmates.md" ] || fail "$mode: home seeding registered a secondmate despite the recorded slot"
+    [ -e "$home/state/stale-crew.meta" ] || fail "$mode: home seeding removed the stale task record"
+  done
+  pass "home seeding refuses to lease while a stale record names an unleased Firstmate slot, and without jq"
 }
 
 test_secondmate_force_teardown_preserves_child_on_unproven_lock() {

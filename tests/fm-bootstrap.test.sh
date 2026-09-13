@@ -656,7 +656,9 @@ test_unknown_backend_reports_invalid_configuration() {
 
 test_json_backends_require_jq_not_tmux() {
   local backend case_dir fakebin bash_env out
-  # herdr/zellij/cmux parse their backend's JSON output, so jq is a genuine dep.
+  # herdr/zellij/cmux parse their backend's JSON output, and every treehouse
+  # backend (tmux included) reads Treehouse's JSON lease state, so jq is a
+  # genuine dep.
   # jq lives in a system BASE_PATH dir on many hosts, so force it missing with a
   # command()/jq() override (the same technique the git-required case uses) to keep
   # the assertion host-independent.
@@ -687,11 +689,12 @@ SH
     assert_contains "$out" "MISSING: jq" "backend=$backend must fail closed on missing jq"
     assert_not_contains "$out" "MISSING: tmux" "backend=$backend must not demand tmux when jq is missing"
   done <<'ROWS'
+tmux
 herdr
 zellij
 cmux
 ROWS
-  pass "bootstrap: JSON-emitting backends require jq (their genuine dep), never tmux"
+  pass "bootstrap: JSON-emitting and treehouse backends require jq (their genuine dep), never an inactive tmux"
 }
 
 test_treehouse_lease_check_follows_resolved_backend() {

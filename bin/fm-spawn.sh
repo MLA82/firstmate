@@ -1116,15 +1116,25 @@ parse_orca_worktree_result() {
   fi
 }
 
-spawn_return_aborted_lease() {  # <slot>
-  local slot=$1 lease
-  [ -n "$slot" ] && fm_treehouse_pool_slot "$PROJ_ABS" "$slot" || return 0
-  lease=$(fm_treehouse_slot_lease "$slot") || return 0
-  [ "${lease#*$'\t'}" = "$SPAWN_LEASE_HOLDER" ] || return 0
-  if ! (cd "$PROJ_ABS" && treehouse return --force --if-lease-holder "$SPAWN_LEASE_HOLDER" "$slot") >/dev/null 2>&1; then
-    echo "warning: could not return task $ID's aborted Treehouse lease on $slot; it stays reserved under holder $SPAWN_LEASE_HOLDER until it is returned by hand" >&2
+spawn_return_aborted_lease() {
+  local pool slots slot rc=0
+  if ! fm_treehouse_require_jq \
+     || ! pool=$(cd "$PROJ_ABS" && treehouse status --json 2>/dev/null) \
+     || ! slots=$(printf '%s\n' "$pool" | jq -r --arg holder "$SPAWN_LEASE_HOLDER" \
+          '.[] | select(.lease_holder == $holder) | .path'); then
+    echo "warning: could not read Treehouse's leases for $PROJ_ABS; any lease task $ID's aborted spawn took stays reserved under holder $SPAWN_LEASE_HOLDER until it is returned by hand" >&2
     return 1
   fi
+  while IFS= read -r slot; do
+    [ -n "$slot" ] || continue
+    if ! (cd "$PROJ_ABS" && treehouse return --force --if-lease-holder "$SPAWN_LEASE_HOLDER" "$slot") >/dev/null 2>&1; then
+      echo "warning: could not return task $ID's aborted Treehouse lease on $slot; it stays reserved under holder $SPAWN_LEASE_HOLDER until it is returned by hand" >&2
+      rc=1
+    fi
+  done <<EOF
+$slots
+EOF
+  return "$rc"
 }
 
 spawn_abort_cleanup() {
@@ -1226,15 +1236,18 @@ spawn_abort_cleanup() {
   # A spawn that aborts after taking its lease but before its record survives
   # must leave neither a lease nor a claim naming a task no record describes.
   # While the project lock that allocated the slot is still held no worker has
-  # been launched, so the lease is returned - conditioned on this task's own
-  # holder, so a slot Treehouse has handed elsewhere is never touched - and the
-  # claim, a read-then-remove, is dropped. A later abort has already released
-  # that lock; its lease and claim stay reserved, and nothing reissues that slot
+  # been launched, so every lease Treehouse itself records under this task's
+  # holder is returned - found from Treehouse's lease record, never the pane's
+  # possibly stale path, and conditioned on that holder so a slot Treehouse has
+  # handed elsewhere is never touched - and the claim, a read-then-remove, is
+  # dropped. A get still running in the pane when the wait times out can take
+  # its lease after this runs, and a later abort has already released the lock;
+  # those leases and claims stay reserved, and nothing reissues such a slot
   # until it is reconciled by hand. Neither step ever removes another task's
   # lease or claim.
   if [ -n "$SPAWN_LEASE_HOLDER" ] && [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] \
      && [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
-    spawn_return_aborted_lease "${WT:-${last_seen:-}}" || true
+    spawn_return_aborted_lease || true
   fi
   if [ "$SPAWN_SLOT_CLAIMED" = 1 ] && [ -n "${WT:-}" ] \
      && [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ] \
