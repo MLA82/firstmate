@@ -1364,10 +1364,13 @@ fm_treehouse_slot_lease() {  # <worktree>
 }
 
 # Whether a path is structurally a Treehouse-managed slot at all - it appears
-# in the pool's own state file - independent of whether it currently carries a
-# lease. An ordinary linked worktree that merely shares a project's identity
-# has no entry here and is never evidence of anything.
-fm_treehouse_slot_registered() {  # <worktree>
+# exactly once in the pool's own state file - and, if so, whether that entry is
+# durably leased: prints true or false, and nothing for a path that is no slot.
+# An ordinary linked worktree that merely shares a project's identity has no
+# entry here and is never evidence of anything. Only reservation keeps get from
+# reissuing a slot, so a lease taken before Treehouse had lease identities, with
+# no lease_id, still counts as reserved here.
+fm_treehouse_slot_reserved() {  # <worktree>
   local slot=$1 state
   fm_treehouse_require_jq || return 1
   if [ -d "$slot" ]; then
@@ -1375,7 +1378,9 @@ fm_treehouse_slot_registered() {  # <worktree>
   fi
   state="$(dirname "$(dirname "$slot")")/treehouse-state.json"
   [ -f "$state" ] && [ ! -L "$state" ] && [ -r "$state" ] || return 1
-  jq -e --arg path "$slot" '[.worktrees[] | select(.path == $path)] | length == 1' "$state" >/dev/null
+  jq -r --arg path "$slot" '
+    [.worktrees[] | select(.path == $path)] | select(length == 1) | .[0].leased == true
+  ' "$state"
 }
 
 # Before ANY get can reset/reissue a legacy slot, every still-recorded copy in
@@ -1383,7 +1388,7 @@ fm_treehouse_slot_registered() {  # <worktree>
 # must be torn down or reconciled first; never upgrade their lease by guessing
 # the occupant. The project lock stays held from this scan through publication.
 # Identity match alone only says a record could share this project's pool -
-# fm_treehouse_slot_registered still has to prove the recorded path is actually
+# fm_treehouse_slot_reserved still has to prove the recorded path is actually
 # a managed slot before an absent lease means anything; an ordinary linked
 # worktree recorded incidentally against the same project is never a slot.
 fm_treehouse_require_reserved_records() {  # <project>
@@ -1402,11 +1407,12 @@ fm_treehouse_require_reserved_records() {  # <project>
         [ -n "$path" ] || continue
         # Matching origin also covers separate clones sharing Treehouse's pool.
         [ "$identity" = "$other_identity" ] || fm_treehouse_pool_slot "$project" "$path" || continue
-        fm_treehouse_slot_registered "$path" || continue
-        if ! fm_treehouse_slot_lease "$path" >/dev/null 2>&1; then
-          echo "REFUSED: $meta still records $field=$path without a durable Treehouse lease; allocation could re-issue that task's slot. Tear down or reconcile that record before spawning; no slot was requested." >&2
-          return 1
-        fi
+        case "$(fm_treehouse_slot_reserved "$path")" in
+          false)
+            echo "REFUSED: $meta still records $field=$path without a durable Treehouse lease; allocation could re-issue that task's slot. Tear down or reconcile that record before spawning; no slot was requested." >&2
+            return 1
+            ;;
+        esac
       done
     done
   done
@@ -1424,6 +1430,8 @@ fm_treehouse_lease_holder() {  # <task-id> <home>
 # dirties the work. New claims require the native lease's exact holder and store
 # its lease_id; teardown validates both before cleanup and conditions return on
 # that identity. Legacy claims have no lease_id and keep record-scan protection.
+# Lease identities need Treehouse v2.1.0 or newer, the floor bin/fm-bootstrap.sh
+# enforces.
 # Unleased legacy metadata blocks new allocation until teardown/reconciliation.
 fm_treehouse_slot_owner_marker() {  # <worktree>
   local worktree=$1 slot
