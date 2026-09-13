@@ -1,0 +1,198 @@
+# Live slot-ownership run 2026-09-13T16:17:18+02:00
+# treehouse v2.3.0, herdr herdr 0.9.0, session fm-lab-slotlive-1048279
+# new code: target commit 75abf2cf; base code: ecfe0719 (for contrast only)
+# $T = /tmp/fm-slot-live.sr2pjW (scratch); primary home $T/primary-home; registered secondmate home $T/secondmate-home
+
+== A: a crewmate's pool slot is durably leased to it and bound to it by its claim
+$ fm-spawn.sh t-alpha proj-a (new code, herdr)
+    | warning: $T/primary-home/data/t-alpha/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | spawned t-alpha harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-slotlive-1048279:w1:p2 worktree=$T/th/.treehouse/proj-a-70894c/1/proj-a
+    (exit 0)
+  PASS: spawn of t-alpha succeeded
+  treehouse status --json (proj-a):
+    {"name":"1","status":"leased","lease_holder":"firstmate:$T/primary-home:t-alpha","lease_id":"29e500800cdab98be5dcf0db971b22e6","processes":2}
+  slot claim th/.treehouse/proj-a-70894c/1/.fm-slot-owner:
+    task=t-alpha
+    home=$T/primary-home
+    lease_id=29e500800cdab98be5dcf0db971b22e6
+  PASS: Treehouse reports t-alpha's slot as leased
+  PASS: the lease holder is firstmate:<home>:t-alpha
+  PASS: the claim names t-alpha, its home, and Treehouse's lease_id
+
+== B: once t-alpha's worker is gone (landed, never torn down) its slot is still NOT reissued
+  PASS: t-alpha's pane closed and no process remains in its slot
+  treehouse status --json (proj-a):
+    {"name":"1","status":"leased","lease_holder":"firstmate:$T/primary-home:t-alpha","lease_id":"29e500800cdab98be5dcf0db971b22e6","processes":0}
+  PASS: Treehouse still leases the process-free slot to t-alpha
+$ fm-spawn.sh t-beta proj-a (new code, herdr)
+    | warning: $T/primary-home/data/t-beta/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | spawned t-beta harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-slotlive-1048279:w2:p2 worktree=$T/th/.treehouse/proj-a-70894c/2/proj-a
+    (exit 0)
+  PASS: spawn of t-beta succeeded
+  treehouse status --json (proj-a):
+    {"name":"1","status":"leased","lease_holder":"firstmate:$T/primary-home:t-alpha","lease_id":"29e500800cdab98be5dcf0db971b22e6","processes":0}
+    {"name":"2","status":"leased","lease_holder":"firstmate:$T/primary-home:t-beta","lease_id":"d4c92b6e3f19e7ff09a86b38eddfe713","processes":2}
+  t-alpha worktree=th/.treehouse/proj-a-70894c/1/proj-a   t-beta worktree=th/.treehouse/proj-a-70894c/2/proj-a
+  PASS: t-beta got a different slot than the one t-alpha's record still names
+
+== E: tearing down the slot's real owner still works and returns exactly its lease
+$ fm-teardown.sh t-beta (new code)
+    | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    | ●  WATCHER DOWN - SUPERVISION IS OFF
+    | ●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+    | ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+    | ●  This is a supervision warning only; the guarded operation WILL still run.
+    | ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+    | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    | teardown: reaping leaked worktree process(es) for t-beta: 1055478 1059919
+    | teardown: force-killing leaked worktree process(es) for t-beta: 1055478
+    | 🌳 Worktree returned to pool.
+    | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    | $T/proj-a: already current
+    | teardown t-beta complete (window fm-lab-slotlive-1048279:w2:p2, worktree $T/th/.treehouse/proj-a-70894c/2/proj-a)
+    | Backlog: t-beta just finished (this home keeps no markdown backlog at $T/primary-home/data/backlog.md). Update $T/primary-home/data/backlog.md - move t-beta to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+    (exit 0)
+  PASS: teardown of t-beta succeeded
+  treehouse status --json (proj-a):
+    {"name":"1","status":"leased","lease_holder":"firstmate:$T/primary-home:t-alpha","lease_id":"29e500800cdab98be5dcf0db971b22e6","processes":0}
+    {"name":"2","status":"available","lease_holder":"","lease_id":"","processes":0}
+  PASS: t-beta's slot is back in the pool (available, no lease)
+  PASS: t-beta's claim and record are gone
+  PASS: t-beta's herdr pane was closed
+  PASS: t-alpha's slot is untouched and still leased to t-alpha
+$ fm-teardown.sh t-alpha (new code; worker already gone)
+    | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    | 🌳 Worktree returned to pool.
+    | $T/proj-a: already current
+    | teardown t-alpha complete (window fm-lab-slotlive-1048279:w1:p2, worktree $T/th/.treehouse/proj-a-70894c/1/proj-a)
+    | Backlog: t-alpha just finished (this home keeps no markdown backlog at $T/primary-home/data/backlog.md). Update $T/primary-home/data/backlog.md - move t-alpha to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+    (exit 0)
+  PASS: teardown of the landed-but-forgotten t-alpha succeeded
+  PASS: t-alpha's slot is back in the pool
+  treehouse status --json (proj-a):
+    {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+    {"name":"2","status":"available","lease_holder":"","lease_id":"","processes":0}
+
+== C: the reported incident - a secondmate's landed-but-never-torn-down record names a now process-free slot
+$ [BASE code] fm-spawn.sh publish-overlay-phase1 proj-c from the secondmate home
+    | warning: $T/secondmate-home/data/publish-overlay-phase1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | spawned publish-overlay-phase1 harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-slotlive-1048279:w3:p2 worktree=$T/th/.treehouse/proj-c-7c9ee4/1/proj-c
+    (exit 0)
+  PASS: pre-fix spawn of publish-overlay-phase1 succeeded
+  PASS: publish-overlay-phase1's pane closed and no process remains in its slot
+  secondmate record still says worktree=th/.treehouse/proj-c-7c9ee4/1/proj-c
+  treehouse status --json (proj-c):
+    {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+$ fm-spawn.sh public-firstmate-cutover-plan proj-c from the primary (NEW code)
+    | warning: $T/primary-home/data/public-firstmate-cutover-plan/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | REFUSED: $T/secondmate-home/state/publish-overlay-phase1.meta still records worktree=$T/th/.treehouse/proj-c-7c9ee4/1/proj-c without a durable Treehouse lease; allocation could re-issue that task's slot. Tear down or reconcile that record before spawning; no slot was requested.
+    (exit 1)
+  PASS: new-code spawn refused
+  PASS: the refusal names the secondmate's stale record
+  PASS: the refusal happened before any slot was requested
+  PASS: Treehouse pool state is unchanged (no new lease)
+  PASS: no record was published for the refused task
+  treehouse status --json (proj-c):
+    {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+  -- contrast: the same spawn with the BASE code reissues the still-recorded slot --
+$ [BASE code] fm-spawn.sh public-firstmate-cutover-plan proj-c from the primary
+    | warning: $T/primary-home/data/public-firstmate-cutover-plan/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | spawned public-firstmate-cutover-plan harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-slotlive-1048279:w4:p3 worktree=$T/th/.treehouse/proj-c-7c9ee4/1/proj-c
+    (exit 0)
+  base spawn exit 0; successor worktree=th/.treehouse/proj-c-7c9ee4/1/proj-c; stale record worktree=th/.treehouse/proj-c-7c9ee4/1/proj-c
+  PASS: BASE code reproduces the bug: it handed the stale record's slot to the unrelated task
+  successor worker pids in slot: 1084021 1087464; branch HEAD; untracked work: README.md successor-work.txt treehouse.toml 
+  treehouse status --json (proj-c):
+    {"name":"1","status":"in-use","lease_holder":"","lease_id":"","processes":2}
+
+== D: tearing down the stale record must not kill or reset the successor that now holds the slot
+$ fm-teardown.sh publish-overlay-phase1  (NEW code, secondmate home)
+    | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    | ●  WATCHER DOWN - SUPERVISION IS OFF
+    | ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+    | ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+    | ●  This is a supervision warning only; the guarded operation WILL still run.
+    | ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+    | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    | REFUSED: task publish-overlay-phase1's recorded worktree $T/th/.treehouse/proj-c-7c9ee4/1/proj-c was reassigned to task public-firstmate-cutover-plan (home $T/primary-home); preserving the slot and task records - not even --force authorizes touching another task's work.
+    (exit 1)
+  PASS: teardown without --force refused
+  PASS: the refusal names the successor/reassignment
+  PASS: the successor's worker is still alive in the slot
+  PASS: the successor's unlanded work survived
+  PASS: the slot was not reset (same HEAD and branch)
+  PASS: the successor's claim still names it
+  PASS: both task records are preserved for reconciliation
+$ fm-teardown.sh publish-overlay-phase1 --force (NEW code, secondmate home)
+    | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    | REFUSED: task publish-overlay-phase1's recorded worktree $T/th/.treehouse/proj-c-7c9ee4/1/proj-c was reassigned to task public-firstmate-cutover-plan (home $T/primary-home); preserving the slot and task records - not even --force authorizes touching another task's work.
+    (exit 1)
+  PASS: teardown --force refused
+  PASS: the refusal names the successor/reassignment
+  PASS: the successor's worker is still alive in the slot
+  PASS: the successor's unlanded work survived
+  PASS: the slot was not reset (same HEAD and branch)
+  PASS: the successor's claim still names it
+  PASS: both task records are preserved for reconciliation
+  treehouse status --json (proj-c):
+    {"name":"1","status":"in-use","lease_holder":"","lease_id":"","processes":2}
+
+== F: a spawn that aborts after Treehouse leased it a slot returns that lease (found by holder)
+  treehouse status --json (proj-f):
+    {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+$ fm-spawn.sh t-zeta proj-f (new code; slot claim will fail after the lease)
+    | warning: $T/primary-home/data/t-zeta/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    | error: could not claim Treehouse pool slot $T/th/.treehouse/proj-f-748f82/1/proj-f for task t-zeta; refusing to launch a worker whose slot cannot later be proved to be its own; inspect window fm-lab-slotlive-1048279:w4:p4
+    (exit 1)
+  PASS: the spawn aborted
+  PASS: it aborted at the claim, after allocation
+  treehouse status --json (proj-f):
+    {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+  PASS: no lease under t-zeta's holder survives the abort
+  PASS: the slot is available again
+  PASS: no record was published for t-zeta
+
+== Summary
+  PASS spawn of t-alpha succeeded
+  PASS Treehouse reports t-alpha's slot as leased
+  PASS the lease holder is firstmate:<home>:t-alpha
+  PASS the claim names t-alpha, its home, and Treehouse's lease_id
+  PASS t-alpha's pane closed and no process remains in its slot
+  PASS Treehouse still leases the process-free slot to t-alpha
+  PASS spawn of t-beta succeeded
+  PASS t-beta got a different slot than the one t-alpha's record still names
+  PASS teardown of t-beta succeeded
+  PASS t-beta's slot is back in the pool (available, no lease)
+  PASS t-beta's claim and record are gone
+  PASS t-beta's herdr pane was closed
+  PASS t-alpha's slot is untouched and still leased to t-alpha
+  PASS teardown of the landed-but-forgotten t-alpha succeeded
+  PASS t-alpha's slot is back in the pool
+  PASS pre-fix spawn of publish-overlay-phase1 succeeded
+  PASS publish-overlay-phase1's pane closed and no process remains in its slot
+  PASS new-code spawn refused
+  PASS the refusal names the secondmate's stale record
+  PASS the refusal happened before any slot was requested
+  PASS Treehouse pool state is unchanged (no new lease)
+  PASS no record was published for the refused task
+  PASS BASE code reproduces the bug: it handed the stale record's slot to the unrelated task
+  PASS teardown without --force refused
+  PASS the refusal names the successor/reassignment
+  PASS the successor's worker is still alive in the slot
+  PASS the successor's unlanded work survived
+  PASS the slot was not reset (same HEAD and branch)
+  PASS the successor's claim still names it
+  PASS both task records are preserved for reconciliation
+  PASS teardown --force refused
+  PASS the refusal names the successor/reassignment
+  PASS the successor's worker is still alive in the slot
+  PASS the successor's unlanded work survived
+  PASS the slot was not reset (same HEAD and branch)
+  PASS the successor's claim still names it
+  PASS both task records are preserved for reconciliation
+  PASS the spawn aborted
+  PASS it aborted at the claim, after allocation
+  PASS no lease under t-zeta's holder survives the abort
+  PASS the slot is available again
+  PASS no record was published for t-zeta
+  42 passed, 0 failed

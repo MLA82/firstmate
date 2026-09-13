@@ -1,0 +1,14 @@
+ROOT=/tmp/fm-base-ecfe0719 MODE=base TREEHOUSE_ROOT=/tmp/fm-live-slot.gIasFh/th treehouse=v2.3.0
+
+=== S1 spawn task A from the primary home: durable lease bound to A
+A worktree=/tmp/fm-live-slot.gIasFh/th/.treehouse/proj-69542b/1/proj
+A slot: {"name":"1","status":"in-use","lease_holder":"","lease_id":"","processes":2}
+PASS: pane shell used the isolated TREEHOUSE_ROOT pool
+
+=== S2 A's worker exits (pane closed) but A is never torn down; spawn B
+A slot after worker exit: {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+B worktree=/tmp/fm-live-slot.gIasFh/th/.treehouse/proj-69542b/1/proj
+A meta still records worktree=/tmp/fm-live-slot.gIasFh/th/.treehouse/proj-69542b/1/proj
+FAIL: REISSUE: B was handed slot /tmp/fm-live-slot.gIasFh/th/.treehouse/proj-69542b/1/proj while A's record still names it
+RESULT mode=base fails=1
+rc=1

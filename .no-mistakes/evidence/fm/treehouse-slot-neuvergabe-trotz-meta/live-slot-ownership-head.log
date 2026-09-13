@@ -1,0 +1,97 @@
+ROOT=/home/mla/.no-mistakes/worktrees/04f432826927/01M2DC3SR16QBK16VWJ577KM1Y MODE=head TREEHOUSE_ROOT=/tmp/fm-live-slot.PNzoKi/th treehouse=v2.3.0
+
+=== S1 spawn task A from the primary home: durable lease bound to A
+A worktree=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/proj
+A slot: {"name":"1","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:A","lease_id":"af0911e611b5700124f5d7f1cedc9f8c","processes":2}
+PASS: pane shell used the isolated TREEHOUSE_ROOT pool
+A claim (/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/.fm-slot-owner):
+  | task=A
+  | home=/tmp/fm-live-slot.PNzoKi/primary-home
+  | lease_id=af0911e611b5700124f5d7f1cedc9f8c
+PASS: A's slot is durably leased by holder firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:A
+PASS: A's claim stores Treehouse's lease_id
+
+=== S2 A's worker exits (pane closed) but A is never torn down; spawn B
+A slot after worker exit: {"name":"1","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:A","lease_id":"af0911e611b5700124f5d7f1cedc9f8c","processes":0}
+B worktree=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/2/proj
+A meta still records worktree=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/proj
+PASS: B got a different slot (/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/2/proj); A's still-recorded slot was not reissued
+PASS: A's slot is still leased by A with no process in it
+
+=== S3 legacy (process-only, pre-fix) record in the SECONDMATE home names a free, unleased slot
+legacy slot before: {"name":"3","status":"dirty","lease_holder":"","lease_id":"","processes":0}
+--- C spawn (expected refusal) ---
+  | warning: /tmp/fm-live-slot.PNzoKi/primary-home/data/C/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+  | REFUSED: /tmp/fm-live-slot.PNzoKi/secondmate-home/state/legacy.meta still records worktree=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/3/proj without a durable Treehouse lease; allocation could re-issue that task's slot. Tear down or reconcile that record before spawning; no slot was requested.
+PASS: spawn C refuses (rc=1)
+PASS: refusal names the secondmate-home record
+PASS: refusal happens before any slot is requested
+PASS: no record published for C
+PASS: Treehouse pool state is byte-identical (no lease taken)
+PASS: legacy slot's unlanded file and HEAD untouched
+
+=== S3-control: once the legacy record is reconciled, spawn C proceeds
+PASS: spawn C succeeds after reconciliation
+C worktree=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/3/proj slot: {"name":"3","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:C","lease_id":"8a8ad0ebbf6ccf7c88cdde98a278900d","processes":2}
+
+=== S4 reported case: A's stale record names a slot now held by live task D of an unregistered home
+D slot before: {"name":"4","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/other-home:D","lease_id":"3d0cf8c9f761b5aedd0c268169aa86f5","processes":2}
+--- teardown A --force (expected refusal) ---
+  | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  | ●  WATCHER DOWN - SUPERVISION IS OFF
+  | ●  3 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  | ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  | ●  This is a supervision warning only; the guarded operation WILL still run.
+  | ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  | ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  | REFUSED: task A's recorded worktree /tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/4/proj was reassigned to task D (home /tmp/fm-live-slot.PNzoKi/other-home); preserving the slot and task records - not even --force authorizes touching another task's work.
+D slot after: {"name":"4","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/other-home:D","lease_id":"3d0cf8c9f761b5aedd0c268169aa86f5","processes":2}
+PASS: teardown of the stale record refuses even with --force (rc=1)
+PASS: refusal names the reassignment to D
+PASS: D's worker is still running in its slot
+PASS: D's unlanded file survives
+PASS: D's lease is untouched
+PASS: A's stale record is preserved for reconciliation
+
+=== S5 adversarial: E's slot lease is returned by hand and re-leased to another holder; E's claim still says E
+E slot=/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/5/proj old lease=5852ea859b48064c0d09ad80a253f389; drydock got /tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/5/proj; now: {"name":"5","status":"leased","lease_holder":"drydock","lease_id":"c9de5926a2f48281a1301b0fa92750a7","processes":0}
+--- teardown E --force (expected refusal) ---
+  | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  | REFUSED: task E's recorded worktree /tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/5/proj no longer holds its Treehouse lease 5852ea859b48064c0d09ad80a253f389 (current lease: c9de5926a2f48281a1301b0fa92750a7	drydock); nothing was changed - not even with --force.
+PASS: teardown refuses when the slot's lease identity changed (rc=1)
+PASS: refusal cites the lost lease
+PASS: drydock's file survives and lease is still drydock's
+
+=== S6 normal teardown of A (its own slot, lease and claim) still works
+--- teardown A ---
+  | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  | 🌳 Worktree returned to pool.
+  | WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  | /tmp/fm-live-slot.PNzoKi/proj: already current
+  | teardown A complete (window fm-lab-slotlease-1850836:w1:p2, worktree /tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/proj)
+  | Backlog: A just finished (this home keeps no markdown backlog at /tmp/fm-live-slot.PNzoKi/primary-home/data/backlog.md). Update /tmp/fm-live-slot.PNzoKi/primary-home/data/backlog.md - move A to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+PASS: teardown A succeeds
+PASS: A's record removed
+PASS: A's slot returned to the pool (no lease)
+PASS: A's claim removed
+A slot after teardown: {"name":"1","status":"available","lease_holder":"","lease_id":"","processes":0}
+
+=== S7 locked abort: the only free slot carries a foreign claim, so spawn F aborts and must return its lease
+free slots: ["/tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/proj"]
+--- F spawn (expected abort) ---
+  | warning: /tmp/fm-live-slot.PNzoKi/primary-home/data/F/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+  | error: could not claim Treehouse pool slot /tmp/fm-live-slot.PNzoKi/th/.treehouse/proj-32ab91/1/proj for task F; refusing to launch a worker whose slot cannot later be proved to be its own; inspect window fm-lab-slotlease-1850836:w2:p7
+PASS: spawn F aborts (rc=1)
+PASS: abort reason is the unclaimable slot
+PASS: no record published for F
+PASS: no Treehouse lease remains under F's holder
+PASS: the foreign claim is left intact
+pool after F abort: [{"name":"1","status":"available","lease_holder":""},{"name":"2","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:B"},{"name":"3","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/primary-home:C"},{"name":"4","status":"leased","lease_holder":"firstmate:/tmp/fm-live-slot.PNzoKi/other-home:D"},{"name":"5","status":"leased","lease_holder":"drydock"}]
+
+=== S6b normal teardown of live tasks B, C (primary) and D (other home) still works
+PASS: teardown B succeeds and returns its lease
+PASS: teardown C succeeds and returns its lease
+PASS: teardown D succeeds and returns its lease
+final pool: [{"name":"1","status":"available","lease_holder":""},{"name":"2","status":"available","lease_holder":""},{"name":"3","status":"available","lease_holder":""},{"name":"4","status":"available","lease_holder":""},{"name":"5","status":"leased","lease_holder":"drydock"}]
+RESULT mode=head fails=0
+rc=0
