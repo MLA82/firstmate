@@ -691,10 +691,16 @@ lay_out_as_pool_slot() {
   SLOT_CLAIM="$slot_root/1/.fm-slot-owner"
 }
 
+slot_leased() {
+  jq -e --arg path "$POOL_DIR" '.worktrees[] | select(.path == $path) | .leased == true' \
+    "$CASE_DIR/slots/treehouse-state.json" >/dev/null
+}
+
 # The spawn side of the slot-owner claim that bin/fm-teardown.sh later reads:
-# a launched task's claim names it, a slot that cannot be claimed refuses before
-# anything is published, and an abort while the allocation lock is still held
-# leaves no claim naming a task with no record.
+# a launched task's claim names it and keeps its lease, a slot that cannot be
+# claimed refuses before anything is published, and an abort while the
+# allocation lock is still held leaves neither a lease nor a claim naming a
+# task with no record.
 test_pool_slot_claim_follows_the_spawn_outcome() {
   local rec id out status before
 
@@ -712,6 +718,7 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
     || fail "the slot claim does not name the spawned task: $(cat "$SLOT_CLAIM")"
   grep -Fxq -- "home=$HOME_DIR" "$SLOT_CLAIM" \
     || fail "the slot claim does not name the spawning home: $(cat "$SLOT_CLAIM")"
+  slot_leased || fail "a launched spawn gave up its Treehouse lease"
 
   id='pool-slot-unclaimable-r1'
   rec=$(make_case slot-unclaimable "$id")
@@ -728,6 +735,7 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
   [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "spawn published a record for an unclaimable slot"
   [ "$(git -C "$POOL_DIR" rev-parse HEAD)" = "$before" ] \
     || fail "spawn moved the slot's HEAD after failing to claim it"
+  ! slot_leased || fail "a spawn refused for an unclaimable slot kept its Treehouse lease"
 
   id='pool-slot-claim-aborted-r1'
   rec=$(make_originless_case slot-claim-aborted "$id")
@@ -742,7 +750,8 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
   [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "the aborted spawn published task metadata"
   [ ! -e "$SLOT_CLAIM" ] && [ ! -L "$SLOT_CLAIM" ] \
     || fail "the aborted spawn left a slot claim naming a task with no record: $(cat "$SLOT_CLAIM")"
-  pass "a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort"
+  ! slot_leased || fail "the aborted spawn kept a Treehouse lease no record describes"
+  pass "a Treehouse slot claim names the launched task, refuses when unclaimable, and a locked abort drops its claim and lease"
 }
 
 test_recorded_slot_blocks_reissue_before_get() {

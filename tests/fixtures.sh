@@ -309,6 +309,29 @@ fm_test_make_spawn_fakebin() {
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
 set -eu
+if [ "${1:-}" = return ]; then
+  shift
+  holder= path=
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --if-lease-holder) holder=$2; shift ;;
+      --if-lease-id) shift ;;
+      --*) ;;
+      *) path=$1 ;;
+    esac
+    shift
+  done
+  [ -n "$holder" ] || exit 0
+  state="$(dirname "$(dirname "$path")")/treehouse-state.json"
+  [ -f "$state" ] || exit 1
+  jq -e --arg path "$path" --arg holder "$holder" \
+    'any(.worktrees[]; .path == $path and .lease_holder == $holder)' "$state" >/dev/null || exit 1
+  jq --arg path "$path" '
+    (.worktrees[] | select(.path == $path)) |= del(.leased, .lease_id, .lease_holder)
+  ' "$state" > "$state.tmp"
+  mv "$state.tmp" "$state"
+  exit 0
+fi
 [ "${1:-}" = get ] || exit 0
 holder=
 while [ "$#" -gt 0 ]; do
