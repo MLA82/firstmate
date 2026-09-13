@@ -1249,21 +1249,26 @@ fm_treehouse_pool_slot() {  # <project-dir> <worktree>
   [ "$project_common" = "$slot_common" ]
 }
 
-# Enumerate discoverable local homes for slot ownership, including the invoking
-# home's overrides, its parent chain, registered descendants, and secondmate
-# metadata not yet reflected in a registry. Remote routes are another filesystem.
-# Missing state directories have no records; unreadable or unsafe records fail
-# closed instead of turning an incomplete scan into allocation authority.
+# Enumerate discoverable local homes for slot ownership: every home's own
+# state, the caller's record state and data overrides, its parent chain,
+# registered descendants, and secondmate metadata not yet reflected in a
+# registry. Remote routes are another filesystem. Each home is walked once and
+# each state scanned once, so a record state belonging to another home never
+# stands in for the invoking home's own. Missing state directories have no
+# records; unreadable or unsafe records fail closed instead of turning an
+# incomplete scan into allocation authority.
 fm_treehouse_collect_states() {  # <record-state>
-  local record_state=$1 root home state reg line child existing known i=0 meta
-  local -a homes registries
+  local record_state=$1 root fm_home home state reg line child existing known i=0 meta
+  local -a homes visited states registries
   # shellcheck source=bin/fm-secondmate-registry-lib.sh
   . "$FM_WAKE_LIB_DIR/fm-secondmate-registry-lib.sh"
   root=$(fm_firstmate_root_home "$FM_HOME") || {
     echo "REFUSED: cannot resolve the root Firstmate home; nothing was changed" >&2
     return 1
   }
-  homes=("$root" "$FM_HOME")
+  fm_home=$(CDPATH='' cd -- "$FM_HOME" 2>/dev/null && pwd -P) || return 1
+  homes=("$fm_home" "$root")
+  visited=()
   TREEHOUSE_OWNER_STATES=()
   while [ "$i" -lt "${#homes[@]}" ]; do
     home=$(CDPATH='' cd -- "${homes[$i]}" 2>/dev/null && pwd -P) || {
@@ -1271,23 +1276,18 @@ fm_treehouse_collect_states() {  # <record-state>
       return 1
     }
     i=$((i + 1))
-    state="$home/state"
-    [ "$home" != "$(CDPATH='' cd -- "$FM_HOME" && pwd -P)" ] || state=$record_state
-    [ ! -e "$state" ] && [ ! -L "$state" ] || {
-      [ -d "$state" ] && [ -r "$state" ] && [ -x "$state" ] || {
-        echo "REFUSED: local Firstmate state is unreadable at $state" >&2
-        return 1
-      }
-      state=$(CDPATH='' cd -- "$state" && pwd -P) || return 1
-    }
     known=0
-    for existing in "${TREEHOUSE_OWNER_STATES[@]+"${TREEHOUSE_OWNER_STATES[@]}"}"; do
-      [ "$existing" != "$state" ] || known=1
+    for existing in "${visited[@]+"${visited[@]}"}"; do
+      [ "$existing" != "$home" ] || known=1
     done
     [ "$known" = 0 ] || continue
-    TREEHOUSE_OWNER_STATES+=("$state")
+    visited+=("$home")
+    states=("$home/state")
     registries=("$home/data/secondmates.md")
-    [ "$state" != "$record_state" ] || registries+=("${DATA:-$home/data}/secondmates.md")
+    if [ "$home" = "$fm_home" ]; then
+      states=("$record_state" "$home/state")
+      registries+=("${DATA:-$home/data}/secondmates.md")
+    fi
     for reg in "${registries[@]}"; do
       [ ! -e "$reg" ] && [ ! -L "$reg" ] && continue
       [ -f "$reg" ] && [ ! -L "$reg" ] && [ -r "$reg" ] || {
@@ -1307,17 +1307,31 @@ fm_treehouse_collect_states() {  # <record-state>
         esac
       done < "$reg" || return 1
     done
-    for meta in "$state"/*.meta; do
-      [ -e "$meta" ] || [ -L "$meta" ] || continue
-      [ -f "$meta" ] && [ ! -L "$meta" ] && [ -r "$meta" ] || {
-        echo "REFUSED: cannot inspect slot ownership in $meta" >&2
+    for state in "${states[@]}"; do
+      [ -e "$state" ] || [ -L "$state" ] || continue
+      [ -d "$state" ] && [ -r "$state" ] && [ -x "$state" ] || {
+        echo "REFUSED: local Firstmate state is unreadable at $state" >&2
         return 1
       }
-      [ "$(fm_meta_get "$meta" kind)" = secondmate ] || continue
-      [ -z "$(fm_meta_get "$meta" remote_host)" ] || continue
-      child=$(fm_meta_get "$meta" home)
-      [ -n "$child" ] || child=$(fm_meta_get "$meta" worktree)
-      [ -z "$child" ] || homes+=("$child")
+      state=$(CDPATH='' cd -- "$state" && pwd -P) || return 1
+      known=0
+      for existing in "${TREEHOUSE_OWNER_STATES[@]+"${TREEHOUSE_OWNER_STATES[@]}"}"; do
+        [ "$existing" != "$state" ] || known=1
+      done
+      [ "$known" = 0 ] || continue
+      TREEHOUSE_OWNER_STATES+=("$state")
+      for meta in "$state"/*.meta; do
+        [ -e "$meta" ] || [ -L "$meta" ] || continue
+        [ -f "$meta" ] && [ ! -L "$meta" ] && [ -r "$meta" ] || {
+          echo "REFUSED: cannot inspect slot ownership in $meta" >&2
+          return 1
+        }
+        [ "$(fm_meta_get "$meta" kind)" = secondmate ] || continue
+        [ -z "$(fm_meta_get "$meta" remote_host)" ] || continue
+        child=$(fm_meta_get "$meta" home)
+        [ -n "$child" ] || child=$(fm_meta_get "$meta" worktree)
+        [ -z "$child" ] || homes+=("$child")
+      done
     done
   done
 }
@@ -1407,7 +1421,7 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 }
 
 # Claim a newly leased slot. A different surviving claim is never overwritten;
-# an aborted allocation retains its native lease for explicit reconciliation.
+# bin/fm-spawn.sh owns returning the lease of an allocation that aborts.
 fm_treehouse_slot_owner_claim() {  # <worktree> <task-id> <home>
   local worktree=$1 id=$2 home=$3 marker tmp lease holder
   [ -n "$id" ] || return 1
