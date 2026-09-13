@@ -183,7 +183,9 @@ test_stale_pool_base_refreshes_before_branching() {
       "$branch_head" "$current" "$(cat "$POOL_DIR/advanced-main.txt")"
   fi
 
-  id='pool-current-base-repeat-r1'
+  # Simulate completion of the first fixture task before reusing its copy.
+  rm "$HOME_DIR/state/$id.meta"
+  id='pool-current-base-repeat-r1' 
   fm_test_spawn_brief "$HOME_DIR" "$id"
   out=$(run_spawn "$id" --mode no-mistakes --yolo off)
   status=$?
@@ -743,6 +745,46 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
   pass "a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort"
 }
 
+test_recorded_slot_blocks_reissue_before_get() {
+  local place rec id out status owner_home old_head old_state
+  for place in local registered metadata; do
+    id="slot-reissue-$place"
+    rec=$(make_case "reissue-$place" "$id")
+    read_case_record "$rec"
+    lay_out_as_pool_slot
+    owner_home=$HOME_DIR
+    if [ "$place" != local ]; then
+      owner_home="$CASE_DIR/secondmate"
+      mkdir -p "$owner_home/state" "$owner_home/data"
+      if [ "$place" = registered ]; then
+        printf -- '- mate - Test (home: %s; scope: test; projects: project; added 2026-09-13)\n' \
+          "$owner_home" > "$HOME_DIR/data/secondmates.md"
+      else
+        fm_write_meta "$HOME_DIR/state/mate.meta" "kind=secondmate" "home=$owner_home"
+      fi
+    fi
+    # The completed task still records this process-free, clean slot. A
+    # different claimant reflects the reported already-reissued-slot case.
+    fm_write_meta "$owner_home/state/finished-task.meta" \
+      "project=$PROJECT_DIR" "worktree=$POOL_DIR" "kind=ship"
+    printf 'task=successor\nhome=%s\n' "$CASE_DIR/other-home" > "$SLOT_CLAIM"
+    old_head=$(git -C "$POOL_DIR" rev-parse HEAD)
+    old_state=$(cat "$CASE_DIR/slots/treehouse-state.json")
+    out=$(FM_FAKE_LAUNCH_LOG="$CASE_DIR/launch.log" run_spawn "$id" --scout)
+    status=$?
+    [ "$status" -ne 0 ] || fail "$place: spawn reused a still-recorded slot"
+    assert_contains "$out" "$owner_home/state/finished-task.meta" "$place: refusal must name the blocking record"
+    assert_contains "$out" "no slot was requested" "$place: refusal must precede allocation"
+    [ ! -e "$CASE_DIR/launch.log" ] || fail "$place: spawn reached the task shell before refusal"
+    [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "$place: refused spawn published metadata"
+    [ "$(git -C "$POOL_DIR" rev-parse HEAD)" = "$old_head" ] || fail "$place: spawn reset the old slot"
+    [ "$(cat "$CASE_DIR/slots/treehouse-state.json")" = "$old_state" ] || fail "$place: spawn changed the pool lease"
+    assert_grep 'task=successor' "$SLOT_CLAIM" "$place: spawn overwrote the successor claim"
+  done
+  pass "recorded local and secondmate slots refuse before get can reissue or reset them"
+}
+
+test_recorded_slot_blocks_reissue_before_get
 test_remote_seeded_home_spawns_from_treehouse_pool
 test_pool_slot_claim_follows_the_spawn_outcome
 test_linked_spawning_home_rejects_primary_before_refresh
