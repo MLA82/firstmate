@@ -468,6 +468,7 @@ Backend tool availability uses the adapter's own executable resolver, so bootstr
 An unknown resolved backend emits `BACKEND_INVALID` and blocks dispatch instead of silently dropping its dependency delta or falling back to tmux.
 Orca provides both the task worktree and terminal endpoint (see "Runtime backend" above), so `backend=orca` requires only `orca` on top of the universal toolchain and skips both `treehouse` and every other backend's session CLI.
 A herdr, zellij, or cmux home is therefore never told `tmux` is missing, and the `treehouse` durable-lease upgrade check runs only for the backends that actually use treehouse.
+That check enforces Treehouse v2.1.0 or newer: slot ownership relies on its durable lease identities (`lease_id`, `status --json`, and `return --if-lease-holder`/`--if-lease-id`), so an older treehouse is reported as `MISSING: treehouse`.
 When `config/crew-dispatch.json` exists, bootstrap also requires `jq` for dispatch profile validation.
 When Relay is opted in, bootstrap also requires `curl` and `jq` before arming the relay poll shim.
 `tasks-axi` and `quota-axi` are essential bootstrap tools in every profile.

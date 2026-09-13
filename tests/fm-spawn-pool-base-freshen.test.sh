@@ -778,6 +778,28 @@ test_aborted_spawn_returns_the_lease_treehouse_recorded() {
   pass "an aborted spawn returns the lease Treehouse recorded for it, not the slot its pane reported"
 }
 
+# A lease taken before Treehouse had lease identities carries no lease_id but is
+# still durably reserved, so a record naming that slot must not block allocation.
+test_pre_identity_lease_counts_as_reserved() {
+  local rec id out status reserved
+  id='pool-slot-pre-identity-r1'
+  rec=$(make_case slot-pre-identity "$id")
+  read_case_record "$rec"
+  lay_out_as_pool_slot
+  reserved="$CASE_DIR/slots/2/project"
+  mkdir -p "$CASE_DIR/slots/2"
+  git -C "$PROJECT_DIR" worktree add --quiet --detach "$reserved" "$INITIAL_SHA"
+  printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s","leased":true,"lease_holder":"mate"}]}\n' \
+    "$POOL_DIR" "$reserved" > "$CASE_DIR/slots/treehouse-state.json"
+  fm_write_meta "$HOME_DIR/state/mate-task.meta" "project=$PROJECT_DIR" "worktree=$reserved" "kind=ship"
+  out=$(run_spawn "$id" --scout)
+  status=$?
+  expect_code 0 "$status" "a pre-identity lease on another recorded slot blocked allocation"$'\n'"$out"
+  assert_grep "worktree=$POOL_DIR" "$HOME_DIR/state/$id.meta" \
+    "spawn did not publish the slot it was allocated"
+  pass "a lease taken before Treehouse lease identities still counts as reserved"
+}
+
 test_recorded_slot_blocks_reissue_before_get() {
   local place rec id out status owner_home old_head old_state
   for place in local registered metadata; do
@@ -818,6 +840,7 @@ test_recorded_slot_blocks_reissue_before_get() {
 }
 
 test_recorded_slot_blocks_reissue_before_get
+test_pre_identity_lease_counts_as_reserved
 test_remote_seeded_home_spawns_from_treehouse_pool
 test_pool_slot_claim_follows_the_spawn_outcome
 test_aborted_spawn_returns_the_lease_treehouse_recorded
