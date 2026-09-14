@@ -224,6 +224,22 @@ fm_backend_zellij_session_exists() {  # <session>
   zellij list-sessions --short --no-formatting 2>/dev/null | grep -qxF "$1"
 }
 
+# fm_backend_zellij_native_windows: true on native Windows under Git for
+# Windows / MSYS2 (Git Bash or MinGW), false everywhere else - Cygwin
+# included. Decided by `uname -s` (MINGW64_NT-*, MINGW32_NT-*, MSYS_NT-*),
+# not by OSTYPE: current Git for Windows ships a bash built for the Cygwin
+# runtime (verified 2026-09-14 on Git for Windows 2.55.0, whose
+# `bash --version` reports x86_64-pc-cygwin), so Git Bash reports
+# OSTYPE=cygwin exactly like a real Cygwin install and OSTYPE can no longer
+# tell the two apart. The kernel name still does: Git for Windows reports
+# MINGW*/MSYS*, while Cygwin reports CYGWIN_NT-*.
+fm_backend_zellij_native_windows() {
+  case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*) return 0 ;;
+  esac
+  return 1
+}
+
 # fm_backend_zellij_server_ensure: create the named session in the background,
 # headless (no attached client), if it does not already exist - mirrors
 # tmux's `tmux has-session || tmux new-session -d` and herdr's server_ensure.
@@ -254,22 +270,19 @@ fm_backend_zellij_session_exists() {  # <session>
 fm_backend_zellij_server_ensure() {  # <session>
   local session=$1 i
   fm_backend_zellij_session_exists "$session" && return 0
-  case "${OSTYPE:-}" in
-    msys*|mingw*)
-      case "$session" in
-        ''|*[!A-Za-z0-9._-]*)
-          echo "error: refusing zellij session name '$session' (must match [A-Za-z0-9._-]+)" >&2
-          return 1
-          ;;
-      esac
-      powershell.exe -NoProfile -NonInteractive -Command \
-        "Start-Process -FilePath 'zellij.exe' -ArgumentList 'attach','-b','$session' -WindowStyle Hidden" \
-        >/dev/null 2>&1 || return 1
-      ;;
-    *)
-      ( nohup zellij attach -b "$session" </dev/null >/dev/null 2>&1 & ) || return 1
-      ;;
-  esac
+  if fm_backend_zellij_native_windows; then
+    case "$session" in
+      ''|*[!A-Za-z0-9._-]*)
+        echo "error: refusing zellij session name '$session' (must match [A-Za-z0-9._-]+)" >&2
+        return 1
+        ;;
+    esac
+    powershell.exe -NoProfile -NonInteractive -Command \
+      "Start-Process -FilePath 'zellij.exe' -ArgumentList 'attach','-b','$session' -WindowStyle Hidden" \
+      >/dev/null 2>&1 || return 1
+  else
+    ( nohup zellij attach -b "$session" </dev/null >/dev/null 2>&1 & ) || return 1
+  fi
   for i in $(seq 1 20); do
     fm_backend_zellij_session_exists "$session" && return 0
     sleep 0.5
