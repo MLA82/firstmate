@@ -472,6 +472,17 @@ fi
 exit 0
 SH
   chmod +x "$fb/powershell.exe"
+  cat > "$fb/uname" <<'SH'
+#!/usr/bin/env bash
+# Platform stub: the Windows branch is keyed on `uname -s`, so each case pins
+# the kernel name it simulates through FM_FAKE_UNAME.
+if [ "${1:-}" = -s ] && [ -n "${FM_FAKE_UNAME:-}" ]; then
+  printf '%s\n' "$FM_FAKE_UNAME"
+  exit 0
+fi
+exec command -p uname "$@"
+SH
+  chmod +x "$fb/uname"
   printf '%s\n' "$fb"
 }
 
@@ -481,12 +492,14 @@ test_server_ensure_uses_powershell_start_process_on_windows() {
   # session died with its one-shot invocation and never survived to be found -
   # confirmed live on Windows 11. The fix launches via a genuinely separate
   # Windows process (PowerShell's Start-Process) instead.
+  # Git for Windows' bash is a Cygwin build and reports OSTYPE=cygwin, so this
+  # case pins that real combination: OSTYPE=cygwin with a MINGW64 kernel name.
   local dir fb session_file
   dir="$TMP_ROOT/server-windows"; mkdir -p "$dir"
   fb=$(make_windows_zellij_fakebin "$dir")
   session_file="$dir/sessions"
   : > "$session_file"
-  OSTYPE=msys PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
+  OSTYPE=cygwin FM_FAKE_UNAME=MINGW64_NT-10.0-26120 PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
     FM_POWERSHELL_LOG="$dir/powershell.log" FM_POWERSHELL_STARTS_SESSION=firstmate \
     bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_server_ensure firstmate' "$ROOT"
   expect_code 0 $? "server_ensure should succeed on Windows once the PowerShell-launched session appears"
@@ -504,7 +517,7 @@ test_server_ensure_refuses_unsafe_session_name_on_windows() {
   dir="$TMP_ROOT/server-windows-unsafe"; mkdir -p "$dir"
   fb=$(make_windows_zellij_fakebin "$dir")
   : > "$dir/powershell.log"
-  out=$( OSTYPE=msys PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$dir/sessions" \
+  out=$( OSTYPE=cygwin FM_FAKE_UNAME=MINGW64_NT-10.0-26120 PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$dir/sessions" \
     FM_POWERSHELL_LOG="$dir/powershell.log" \
     bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_server_ensure "$1"' "$ROOT" "firstmate'; Remove-Item C:\\" 2>&1 )
   status=$?
@@ -526,7 +539,7 @@ test_server_ensure_uses_nohup_on_cygwin() {
   session_file="$dir/sessions"
   : > "$session_file"
   : > "$dir/powershell.log"
-  OSTYPE=cygwin PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
+  OSTYPE=cygwin FM_FAKE_UNAME=CYGWIN_NT-10.0-26120 PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
     FM_POWERSHELL_LOG="$dir/powershell.log" FM_ZELLIJ_ATTACH_STARTS_SESSION=1 \
     bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_server_ensure firstmate' "$ROOT"
   expect_code 0 $? "server_ensure should succeed on Cygwin via the unchanged nohup-based launch"
@@ -547,13 +560,13 @@ test_server_ensure_accepts_unusual_session_name_off_windows() {
   session_file="$dir/sessions"
   : > "$session_file"
   : > "$dir/powershell.log"
-  OSTYPE=linux-gnu PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
+  OSTYPE=linux-gnu FM_FAKE_UNAME=Linux PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$session_file" \
     FM_POWERSHELL_LOG="$dir/powershell.log" FM_ZELLIJ_ATTACH_STARTS_SESSION=1 \
     bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_server_ensure "$1"' "$ROOT" 'fm smoke+1'
   expect_code 0 $? "server_ensure should accept a space-bearing session name on the nohup-based branch"
   assert_contains "$(cat "$dir/zellij.log")" $'\x1f''fm smoke+1' \
     "server_ensure did not pass the session name through verbatim on the nohup-based branch"
-  [ ! -s "$dir/powershell.log" ] || fail "server_ensure invoked powershell.exe on a non-Windows OSTYPE"
+  [ ! -s "$dir/powershell.log" ] || fail "server_ensure invoked powershell.exe on a non-Windows host"
   pass "fm_backend_zellij_server_ensure: accepts session names outside the PowerShell charset off Windows"
 }
 
