@@ -532,6 +532,8 @@ When the selected named server is not running, the adapter launches it without t
 - The supervision-model override.
 
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
+Where `setsid(1)` is available, that launch detaches the server into its own POSIX session: Herdr computes `capabilities.detached_server_daemon` once at server start from whether the process leads its own session, and a server without it refuses saved machines.
+A host without that utility, such as macOS, keeps the plain background launch.
 An already-running server is reused without restart or environment changes.
 Explicit named-session routing and unrelated launch environment remain intact.
 
