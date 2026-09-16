@@ -222,6 +222,8 @@ Every Herdr invocation goes through `fm_backend_herdr_cli`, which sets the envir
 An environment variable alone is not reliable when another Herdr server is running.
 When the selected named server is not running, the adapter launches it without inherited Firstmate home and directory overrides, harness identity markers, or the supervision-model override.
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
+Where `setsid(1)` is available, that launch detaches the server into its own POSIX session: Herdr computes `capabilities.detached_server_daemon` once at server start from whether the process leads its own session, and a server without it refuses saved machines.
+A host without that utility, such as macOS, keeps the plain background launch.
 An already-running server is reused without restart or environment changes.
 Explicit named-session routing and unrelated launch environment remain intact.
 
