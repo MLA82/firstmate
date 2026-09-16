@@ -1,0 +1,17 @@
+### Adversarial variants (same live harness, real herdr 0.9.1)
+
+--- host WITHOUT setsid(1) on PATH: plain background launch must still bring the server up ---
+== mode=nosetsid session=fm-lab-detach-nosetsid3-352814
+setsid on PATH: no
+server_ensure: ok
+status: {"running":true,"version":"0.9.1","capabilities":{"live_handoff":true,"detached_server_daemon":false,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true}}
+launcher shell: pid=352814 sid=352809 pgid=352811
+server pid=352936 sid=352809
+
+--- session-selected client binary, NO 'herdr' on PATH at all ---
+== mode=selected-bin session=fm-lab-detach-selbin2-353626
+herdr on PATH: no; selected client: /home/mlalocal/.local/bin/herdr
+server_ensure: ok
+status: {"running":true,"version":"0.9.1","capabilities":{"live_handoff":true,"detached_server_daemon":true,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true}}
+launcher shell: pid=353626 sid=352809 pgid=352811
+server pid=353748 sid=353748

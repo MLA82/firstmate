@@ -1,0 +1,7 @@
+### Re-running server_ensure against an already-running detached server
+first ensure: ok
+second ensure: ok
+server pids after first ensure: 362518 
+server pids after second ensure: 362518 
+idempotent: same single server reused, no restart
+capabilities: true
