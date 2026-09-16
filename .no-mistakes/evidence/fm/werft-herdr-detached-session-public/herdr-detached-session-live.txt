@@ -1,0 +1,32 @@
+# Live herdr server detachment evidence (real herdr 0.9.1, Linux/popos)
+
+Each session below was started by calling fm_backend_herdr_server_ensure <session> from the
+adapter under test (fix branch) or from the base commit b0877b4 adapter, exactly as
+bin/fm-remote-doctor.sh --fix -> start_herdr_server does.
+
+SESSION            SOURCE       SERVER PID/SID/PGID        capabilities.detached_server_daemon
+nmtest-old         base b0877b4 3127775 3126468 3127728    running=true detached_server_daemon=false
+nmtest-new         fix branch   3122198 3122198 3122198    running=true detached_server_daemon=true
+nmtest-leader      fix branch   3143485 3143485 3143485    running=true detached_server_daemon=true
+nmtest-leader2     fix branch   3147329 3147329 3147329    running=true detached_server_daemon=true
+nmtest-env         fix branch   3141522 3141522 3141522    running=true detached_server_daemon=true
+nmtest-nosetsid    fix, no setsid 3150812 3150758 3150764    running=true detached_server_daemon=false
+nmtest-sel         fix, sel. client 3155156 3155156 3155156    running=true detached_server_daemon=true
+
+## Session nmtest-env: launcher environment vs. detached server environment (fix branch)
+launcher exported FM_HOME/FM_ROOT_OVERRIDE/CLAUDECODE/FM_SUPERVISION_MODEL/FM_HERDR_SENTINEL
+  server FM_HOME=<absent>
+  server FM_ROOT_OVERRIDE=<absent>
+  server CLAUDECODE=<absent>
+  server FM_SUPERVISION_MODEL=<absent>
+  server FM_HERDR_SENTINEL=kept
+  server HERDR_SESSION=nmtest-env
+
+## Re-running fm_backend_herdr_server_ensure nmtest-env against the already-running server
+  launcher: pid=3335863 sid=3335825 pgid=3335861
+  ensure: ok
+  running=true
+  detached_server_daemon=true
+  3141522 3141522 3141522 herdr server --session nmtest-env
+  3335825 3335825 3335825 /bin/bash -c source /home/mlalocal/.claude/shell-snapshots/snapshot-bash-1789599507159-hjes9w.sh
+  3335827 3335825 3335827 /bin/bash -c source /home/mlalocal/.claude/shell-snapshots/snapshot-bash-1789599507159-hjes9w.sh
