@@ -1,0 +1,13 @@
+export GOTMPDIR=/tmp/fm-sm1/gotmp
+FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME='/tmp/fm-live-sm.GSs7CJ/home' FM_HOME='/tmp/fm-live-sm.GSs7CJ/smhome' F
+M_TRACE_CONTEXT=off FM_SUPERVISION_MODEL=autoarm env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 CLAUDE_CODE_FORCE_SESSION
+_PERSISTENCE=1 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}' "$('/home/mla/.no-mistakes/worktrees/c5f70a6c06fa/01M2
+RFENW7TCD5A4ND7T2FF9YH/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-live-sm.GSs7CJ/smhome/data/charter.md')"%
+mla@MLAI713000K /tmp/fm-live-sm.GSs7CJ/smhome
+ % export GOTMPDIR=/tmp/fm-sm1/gotmp
+mla@MLAI713000K /tmp/fm-live-sm.GSs7CJ/smhome
+ % FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME='/tmp/fm-live-sm.GSs7CJ/home' FM_HOME='/tmp/fm-live-sm.GSs7CJ/smhome
+' FM_TRACE_CONTEXT=off FM_SUPERVISION_MODEL=autoarm env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 CLAUDE_CODE_FORCE_SESS
+ION_PERSISTENCE=1 claude --dangerously-skip-permissions --settings '{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}' "$('/home/mla/.no-mistakes/worktrees/c5f70a6c06fa/0
+1M2RFENW7TCD5A4ND7T2FF9YH/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-live-sm.GSs7CJ/smhome/data/charter.md')"
+stub claude secondmate running

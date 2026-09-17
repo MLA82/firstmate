@@ -1,0 +1,140 @@
+<!doctype html><meta charset=utf-8><title>Firstmate Claude transcript persistence - live evidence</title>
+<style>body{background:#14161a;color:#e6e6e6;font-family:-apple-system,Segoe UI,sans-serif;margin:24px}
+h1{font-size:19px} h2{font-size:15px;margin-top:28px} .tag{font:12px monospace;padding:2px 8px;border-radius:10px}
+.bad{background:#5a1d1d;color:#ffb4b4} .good{background:#14421f;color:#9ff0b6}
+pre{background:#0b0d10;border:1px solid #2a2f37;border-radius:8px;padding:14px;overflow:auto;font:12px/1.35 ui-monospace,Menlo,monospace;white-space:pre}
+mark{background:#6b4b00;color:#ffe9a8}</style>
+<h1>Firstmate-launched Claude sessions persist their transcripts again</h1>
+<p>Real Claude Code v2.1.274 driven in a pty from inside a Claude session with an inherited
+<code>CLAUDE_CODE_CHILD_SESSION=1</code> marker, against an isolated <code>CLAUDE_CONFIG_DIR</code>.</p>
+<h2>Before — launch env without the override <span class="tag bad">0 transcripts written</span></h2>
+<pre> ▐▛███▛█   Claude Code v2.1.274
+▝▜██████▀  Opus 5 (1M context) · Claude Max
+  ▝▝ ▝▝    /tmp/fm-cwdF.ZnlJrY
+
+▎ [✻] [✻] [✻] · Share Claude Code and earn €10 in usage credits · /passes
+
+❯ Reply with exactly: OK
+
+● OK
+
+✻ Baked for 1s · done 10:25 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  <mark>⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 to keep future transcripts</mark></pre>
+<h2>After — launch env fm-spawn.sh now produces <span class="tag good">transcript written, warning gone</span></h2>
+<pre>▝▜██████▀  Opus 5 (1M context) · Claude Max
+  ▝▝ ▝▝    /tmp/fm-cwdG.muroIU
+
+▎ [✻] [✻] [✻] · Share Claude Code and earn €10 in usage credits · /passes
+
+❯ Reply with exactly: OK
+
+● OK
+
+✻ Cooked for 2s · done 10:26 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  %</pre>
+<h2>Persisted state</h2>
+<pre># Transcript persistence under an inherited CLAUDE_CODE_CHILD_SESSION marker
+# Real Claude Code v2.1.274 launched in a pty from a Claude session, isolated CLAUDE_CONFIG_DIR=/tmp/fm-claudecfg.NoxKCF
+
+## Run A - CLAUDE_CODE_CHILD_SESSION=1, NO override (pre-fix launch env), cwd /tmp/fm-cwdF.ZnlJrY
+*.jsonl transcript files written: 0
+
+## Run B - CLAUDE_CODE_CHILD_SESSION=1 + CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 (post-fix launch env), cwd /tmp/fm-cwdG.muroIU
+*.jsonl transcript files written: 1
+-rw------- 1 mla mla 178187 Sep 17 22:27 /tmp/fm-claudecfg.NoxKCF/projects/-tmp-fm-cwdG-muroIU/18a39e93-3903-455d-a302-16c82557eff5.jsonl
+
+first persisted user turn:
+{
+ &quot;type&quot;: &quot;user&quot;,
+ &quot;sessionId&quot;: &quot;18a39e93-3903-455d-a302-16c82557eff5&quot;,
+ &quot;cwd&quot;: &quot;/tmp/fm-cwdG.muroIU&quot;,
+ &quot;version&quot;: &quot;2.1.274&quot;
+}
+message: {&#x27;role&#x27;: &#x27;user&#x27;, &#x27;content&#x27;: &#x27;Reply with exactly: OK&#x27;}
+
+resume hint printed by Run B on exit:
+claude --resume 18a39e93-3903-455d-a302-16c82557eff5</pre>
+<h2>Process environment of the Claude crewmate spawned by fm-spawn.sh (live tmux spawn)</h2>
+<pre>CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_EXECPATH=/home/mla/.nvm/versions/node/v26.6.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks-1000/2338868.sock
+CLAUDE_CODE_MESSAGING_TOKEN=71545886a6f64043bb5e7a4ab1bef349
+CLAUDE_CODE_SEND_FEEDBACK=0
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CODE_SESSION_ID=1aaee9b0-d199-4147-bc54-6f71890b90ba</pre>

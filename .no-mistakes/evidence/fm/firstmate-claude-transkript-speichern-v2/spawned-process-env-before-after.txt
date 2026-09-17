@@ -1,0 +1,46 @@
+# Process environment of the Claude crewmate that bin/fm-spawn.sh actually started
+# (live spawn into a real tmux pane; firstmate itself ran with CLAUDE_CODE_CHILD_SESSION=1)
+
+## base commit f5d7f5f (before the fix)
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_EXECPATH=/home/mla/.nvm/versions/node/v26.6.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
+CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks-1000/2338868.sock
+CLAUDE_CODE_MESSAGING_TOKEN=71545886a6f64043bb5e7a4ab1bef349
+CLAUDE_CODE_SEND_FEEDBACK=0
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CODE_SESSION_ID=1aaee9b0-d199-4147-bc54-6f71890b90ba
+
+## target commit 31e0d67 (after the fix)
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_EXECPATH=/home/mla/.nvm/versions/node/v26.6.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks-1000/2338868.sock
+CLAUDE_CODE_MESSAGING_TOKEN=71545886a6f64043bb5e7a4ab1bef349
+CLAUDE_CODE_SEND_FEEDBACK=0
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CODE_SESSION_ID=1aaee9b0-d199-4147-bc54-6f71890b90ba
+
+## codex crewmate after the fix (scope check - must NOT carry the claude override)
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_EXECPATH=/home/mla/.nvm/versions/node/v26.6.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
+CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks-1000/2338868.sock
+CLAUDE_CODE_MESSAGING_TOKEN=71545886a6f64043bb5e7a4ab1bef349
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CODE_SESSION_ID=1aaee9b0-d199-4147-bc54-6f71890b90ba
+
+## claude secondmate after the fix
+CLAUDE_CODE_CHILD_SESSION=1
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false
+CLAUDE_CODE_ENTRYPOINT=sdk-cli
+CLAUDE_CODE_EXECPATH=/home/mla/.nvm/versions/node/v26.6.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
+CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
+CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks-1000/2338868.sock
+CLAUDE_CODE_MESSAGING_TOKEN=71545886a6f64043bb5e7a4ab1bef349
+CLAUDE_CODE_SEND_FEEDBACK=0
+CLAUDE_CODE_SESSION_ATTENDED=0
+CLAUDE_CODE_SESSION_ID=1aaee9b0-d199-4147-bc54-6f71890b90ba

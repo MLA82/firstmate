@@ -1,0 +1,14 @@
+treehouse get
+mla@MLAI713000K /tmp/fm-live-persist.TBCVQM/wt
+ % treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.treehouse/project-b5218b/1/project. Type 'exit' to return.
+mla@MLAI713000K ~/.treehouse/project-b5218b/1/project
+ % export GOTMPDIR=/tmp/fm-live1/gotmp
+mla@MLAI713000K ~/.treehouse/project-b5218b/1/project
+ % export FM_TASK_ID=live1
+mla@MLAI713000K ~/.treehouse/project-b5218b/1/project
+ % env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch '/tmp/fm-live-persist.TBCVQM/home/state/l
+ive1.turn-ended'\"]" "$('/home/mla/.no-mistakes/worktrees/c5f70a6c06fa/01M2RFENW7TCD5A4ND7T2FF9YH/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-live-persist.TBCVQM/home/data/live1/launch
+-brief.md')"
+stub ${0##*/} running

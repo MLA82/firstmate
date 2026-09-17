@@ -1,0 +1,21 @@
+# Transcript persistence under an inherited CLAUDE_CODE_CHILD_SESSION marker
+# Real Claude Code v2.1.274 launched in a pty from a Claude session, isolated CLAUDE_CONFIG_DIR=/tmp/fm-claudecfg.NoxKCF
+
+## Run A - CLAUDE_CODE_CHILD_SESSION=1, NO override (pre-fix launch env), cwd /tmp/fm-cwdF.ZnlJrY
+*.jsonl transcript files written: 0
+
+## Run B - CLAUDE_CODE_CHILD_SESSION=1 + CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 (post-fix launch env), cwd /tmp/fm-cwdG.muroIU
+*.jsonl transcript files written: 1
+-rw------- 1 mla mla 178187 Sep 17 22:27 /tmp/fm-claudecfg.NoxKCF/projects/-tmp-fm-cwdG-muroIU/18a39e93-3903-455d-a302-16c82557eff5.jsonl
+
+first persisted user turn:
+{
+ "type": "user",
+ "sessionId": "18a39e93-3903-455d-a302-16c82557eff5",
+ "cwd": "/tmp/fm-cwdG.muroIU",
+ "version": "2.1.274"
+}
+message: {'role': 'user', 'content': 'Reply with exactly: OK'}
+
+resume hint printed by Run B on exit:
+claude --resume 18a39e93-3903-455d-a302-16c82557eff5
