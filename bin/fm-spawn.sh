@@ -1662,11 +1662,11 @@ launch_template() {
   # leaves the other in force. Both are per-launch, scoped to this invocation only,
   # and never touch the captain's global ~/.claude/settings.json.
   # Claude Code treats CLAUDE_CODE_CHILD_SESSION as a process-start signal and
-  # otherwise disables transcript persistence for a child session.  Its
+  # otherwise disables transcript persistence for a child session. Its
   # CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 override must therefore be present
   # on every new Firstmate-launched Claude process; it cannot restore a
   # transcript for an already-running session.
-  # The same inline --settings JSON also carries the attribution policy
+  # The inline --settings JSON above also carries the attribution policy
   # ("attribution": {"commit": "", "pr": "", "sessionUrl": false}), which
   # suppresses Claude Code's Co-Authored-By trailer, Claude-Session link, and
   # generated-with line in commits and PR bodies. The captain sets that
