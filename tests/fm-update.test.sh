@@ -580,7 +580,7 @@ test_primary_update_rebinds_local_watch
 # treating untracked-only as dirty.
 test_untracked_only_advances_fast_forward() {
   local w out
-  w=$(new_world t12)
+  w=$(new_world untracked-ff)
   bump_origin "$w" instr
   # Write an untracked cache file into the firstmate checkout.
   mkdir -p "$w/main/.opencode"
@@ -599,7 +599,7 @@ test_untracked_only_advances_fast_forward() {
 # is still skipped with "dirty working tree".
 test_tracked_file_modification_blocks_fast_forward() {
   local w out
-  w=$(new_world t13)
+  w=$(new_world untracked-ff-tracked-dirty)
   bump_origin "$w" instr
   printf 'local dirty line\n' >> "$w/main/README.md"
 
@@ -617,7 +617,7 @@ test_tracked_file_modification_blocks_fast_forward() {
 # This real error must surface cleanly, not be silently swallowed.
 test_untracked_collision_surfaces_git_error() {
   local w out
-  w=$(new_world t14)
+  w=$(new_world untracked-ff-collision)
   # Advance origin to add a new file in bin/.
   printf 'v2\n' > "$w/seed/AGENTS.md"
   printf 'echo b\n' > "$w/seed/bin/tool.sh"
