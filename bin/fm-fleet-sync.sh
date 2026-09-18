@@ -17,11 +17,9 @@
 # ff-only merge that would overwrite an untracked file, so that self-protection
 # is relied on instead of treating untracked-only as dirty. A re-attach checkout
 # git refuses is still reported STUCK, carrying git's reason. A fast-forward git
-# refuses is STUCK only when an untracked file actually sits at a path the
-# advance touches; any other fast-forward failure (a held lock, a momentarily
-# busy worktree) is a self-clearing condition and stays a quiet
-# "skipped: fast-forward failed: <reason>", as before this file distinguished
-# the untracked-collision case at all.
+# refuses - whatever the reason, including a colliding untracked file - stays a
+# quiet "skipped: fast-forward failed: <reason>", same as any other unmet
+# fast-forward precondition.
 # Still skips (benignly) local-only/no-origin projects, missing remotes/branches,
 # and fetch failures.
 # A candidate under projects/ must be the root of its own work tree: git discovery
@@ -309,27 +307,6 @@ report_stuck() {
   echo "$label: STUCK: on $state, $behind commits behind $BASE - needs attention${detail:+ ($detail)}"
 }
 
-# Whether an untracked file sits at a path this advance would touch - the
-# concrete file-path condition behind git's ff-only "would be overwritten"
-# refusal, checked directly rather than by matching git's own error text
-# (which varies by git version and locale). A merge failure with no such
-# untracked path in play is some other, typically transient, condition (a
-# held lock, a momentarily busy worktree) that clears on its own.
-untracked_ff_collision() {
-  local dir=$1 default=$2 base=$3 changed untracked path
-  changed=$(git -C "$dir" diff --name-only "$default" "$base" 2>/dev/null)
-  [ -n "$changed" ] || return 1
-  untracked=$(git -C "$dir" status --porcelain --untracked-files=all 2>/dev/null | sed -n 's/^?? //p')
-  [ -n "$untracked" ] || return 1
-  while IFS= read -r path; do
-    [ -n "$path" ] || continue
-    printf '%s\n' "$changed" | grep -Fxq "$path" && return 0
-  done <<EOF
-$untracked
-EOF
-  return 1
-}
-
 sync_project() {
   PROJ=$1
   label=$(project_label)
@@ -469,12 +446,7 @@ sync_project() {
     if [ -n "$merge_output" ]; then
       reason="$reason: $(first_line "$merge_output")"
     fi
-    if untracked_ff_collision "$PROJ" "$DEFAULT" "$BASE"; then
-      [ "$recovered" = no ] || reason="re-attached $DEFAULT, $reason"
-      report_stuck "$(stuck_state)" "$reason"
-    else
-      echo "$label: skipped: $reason"
-    fi
+    echo "$label: skipped: $reason"
     return 0
   fi
   after=$(git -C "$PROJ" rev-parse --short "$DEFAULT") || {
