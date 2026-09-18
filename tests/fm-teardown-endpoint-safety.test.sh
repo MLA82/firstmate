@@ -1369,12 +1369,11 @@ assert_orca_stale_worktree_refuses_before_touching_it() {  # <case> <id> <worker
 }
 
 test_orca_scout_stale_worktree_refuses_before_reaping() {
-  local dir id=orca-scout-stale worker rc orca_free
+  local dir id=orca-scout-stale worker rc
   dir=$(make_case orca-scout-stale)
   install_fake_orca "$dir"
   mkdir -p "$dir/worktree/.claude" "$dir/elsewhere-worktree"
   printf '{}' > "$dir/worktree/.claude/settings.local.json"
-  orca_free=$(fm_test_base_path_sans "$PATH" orca)
 
   fm_write_meta "$dir/home/state/$id.meta" \
     "window=fm-$id" "endpoint_task_id=$id" "terminal=term-1" \
@@ -1390,7 +1389,7 @@ test_orca_scout_stale_worktree_refuses_before_reaping() {
   env -u TMUX -u TMUX_PANE \
     FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" FM_RUNTIME_LOG="$dir/runtime.log" \
     FM_TEST_ORCA_WORKTREE_PATH="$dir/elsewhere-worktree" \
-    PATH="$dir/fakebin:$orca_free" "$TEARDOWN" "$id" \
+    PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$id" \
     > "$dir/stdout" 2> "$dir/stderr"
   rc=$?
   set -e
@@ -1406,12 +1405,11 @@ test_orca_scout_stale_worktree_refuses_before_reaping() {
 }
 
 test_orca_forced_ship_stale_worktree_refuses_before_reaping() {
-  local dir id=orca-ship-stale-forced worker rc orca_free
+  local dir id=orca-ship-stale-forced worker rc
   dir=$(make_case orca-ship-stale-forced)
   install_fake_orca "$dir"
   mkdir -p "$dir/worktree/.claude" "$dir/elsewhere-worktree"
   printf '{}' > "$dir/worktree/.claude/settings.local.json"
-  orca_free=$(fm_test_base_path_sans "$PATH" orca)
 
   fm_write_meta "$dir/home/state/$id.meta" \
     "window=fm-$id" "endpoint_task_id=$id" "terminal=term-2" \
@@ -1425,7 +1423,7 @@ test_orca_forced_ship_stale_worktree_refuses_before_reaping() {
   env -u TMUX -u TMUX_PANE \
     FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" FM_RUNTIME_LOG="$dir/runtime.log" \
     FM_TEST_ORCA_WORKTREE_PATH="$dir/elsewhere-worktree" \
-    PATH="$dir/fakebin:$orca_free" "$TEARDOWN" "$id" --force \
+    PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$id" --force \
     > "$dir/stdout" 2> "$dir/stderr"
   rc=$?
   set -e
