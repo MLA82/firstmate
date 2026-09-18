@@ -448,6 +448,29 @@ test_recovered_then_ff_collision_names_reattach() {
   pass "a re-attach followed by a refused fast-forward is STUCK and still names the re-attach"
 }
 
+test_transient_ff_failure_stays_skipped_not_stuck() {
+  local home clone out lock
+  home=$(new_home)
+  clone=$(build_pair "$home" tau)
+  advance_origin "$home" tau C1
+  # A held index.lock is a real, momentarily-busy-worktree fast-forward failure
+  # with no untracked file in play - the self-clearing case the loud STUCK
+  # report must not catch.
+  lock="$clone/.git/index.lock"
+  : > "$lock"
+
+  out=$(run_sync "$home" "$clone")
+  rm -f "$lock"
+
+  assert_contains "$out" "tau: skipped: fast-forward failed" \
+    "a lock-blocked fast-forward with no untracked collision stays a quiet skip"
+  assert_not_contains "$out" "STUCK" \
+    "a transient, self-clearing fast-forward failure must not be reported STUCK"
+  [ "$(head_sha "$clone")" != "$(git -C "$clone" rev-parse origin/main)" ] \
+    || fail "clone should not have fast-forwarded while the lock was held"
+  pass "a transient fast-forward failure with no untracked collision stays a quiet skip, not STUCK"
+}
+
 test_non_default_branch_is_stuck_untouched() {
   local home clone out
   home=$(new_home)
@@ -835,6 +858,7 @@ test_detached_untracked_only_recovers
 test_detached_checkout_collision_is_stuck_with_reason
 test_untracked_collision_blocks_ff_stuck_with_reason
 test_recovered_then_ff_collision_names_reattach
+test_transient_ff_failure_stays_skipped_not_stuck
 test_non_default_branch_is_stuck_untouched
 test_diverged_is_stuck_untouched
 test_on_default_clean_behind_fast_forwards
