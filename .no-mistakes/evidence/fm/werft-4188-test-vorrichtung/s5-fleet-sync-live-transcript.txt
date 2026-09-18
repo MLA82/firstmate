@@ -1,0 +1,27 @@
+=== Scenario A: an untracked-only tool cache must not block the fleet sync ===
+--- captain runs: bin/fm-fleet-sync.sh
+tooling: synced 1fbd4fc..35018bd
+--- resulting clone state:
+HEAD      = C1
+origin/main= C1
+file.txt  = v1
+untracked cache survived: sqlite cache
+
+=== Scenario B (adversarial): an untracked file colliding with an incoming tracked file ===
+--- captain runs: bin/fm-fleet-sync.sh docs
+docs: STUCK: on branch main, 1 commits behind origin/main - needs attention (fast-forward failed: error: The following untracked working tree files would be overwritten by merge:)
+--- resulting clone state:
+advanced: no
+local file content preserved: MY LOCAL UNTRACKED WORK
+
+=== Scenario C (adversarial): a tracked-file edit still stops the sync loudly ===
+--- captain runs: bin/fm-fleet-sync.sh charts
+charts: STUCK: on branch main with uncommitted changes, 1 commits behind origin/main - needs attention
+--- local edit preserved: uncommitted captain edit
+
+=== Scenario D: detached HEAD with an untracked-only tree self-heals ===
+--- captain runs: bin/fm-fleet-sync.sh relay
+relay: recovered: re-attached main, synced 6e5f225..f6d8cbb
+--- HEAD now on: main
+--- at origin tip: YES
+--- untracked cache survived: cache
