@@ -131,8 +131,11 @@
 # These refusals are not relaxed by --force: --force authorizes discarding THIS
 # task's unlanded work, never another task's live work. Nothing of this task's
 # own is removed by a refusal; reconcile whichever record is wrong and re-run.
-# Orca is not a pool slot and proves its path through
-# require_orca_worktree_path_match instead.
+# Orca is not a pool slot: it proves its recorded worktree through
+# require_orca_worktree_path_match instead, at the same single ownership
+# determination (require_owned_task_worktree_slot) and therefore before every
+# destructive step, --force included. An Orca worktree path that is already
+# gone has nothing left to protect and needs no proof.
 # Orca tasks use the same safety checks, then close the recorded terminal and
 # remove the recorded worktree through `orca worktree rm`; teardown never guesses
 # an Orca target from ambient CLI state.
