@@ -2285,8 +2285,9 @@ require_owned_task_worktree_slot() {
   local slot rc=0
   # Orca is not a pool slot; it owns its own worktree and proves that through
   # require_orca_worktree_path_match_if_present instead of the treehouse claim
-  # below. That function itself refuses on any unresolved proof (missing CLI,
-  # mismatched path), never falling through to "nothing to check".
+  # below. Whenever $WT still exists, that function refuses on any unresolved
+  # proof (missing CLI, mismatched path); when $WT is absent there is nothing
+  # left to protect, so it returns without calling Orca at all.
   if [ "$KIND" != secondmate ] && [ "$BACKEND" = orca ]; then
     require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || return 1
     return 0
