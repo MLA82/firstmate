@@ -1,0 +1,20 @@
+Ihr Branch ist auf demselben Stand wie 'origin/main'.
+
+nichts zu committen, Arbeitsverzeichnis unverändert
+/tmp/fm-update-tests.KOmIMM/t12/seed': Datei oder Verzeichnis nicht gefunden
+fatal: cannot change to 'Auf Branch main
+Ihr Branch ist auf demselben Stand wie 'origin/main'.
+
+nichts zu committen, Arbeitsverzeichnis unverändert
+/tmp/fm-update-tests.KOmIMM/t12/seed': Datei oder Verzeichnis nicht gefunden
+fatal: cannot change to 'Auf Branch main
+Ihr Branch ist auf demselben Stand wie 'origin/main'.
+
+nichts zu committen, Arbeitsverzeichnis unverändert
+/tmp/fm-update-tests.KOmIMM/t12/seed': Datei oder Verzeichnis nicht gefunden
+not ok - untracked-only tree does not block fast-forward (missing: 'firstmate: updated ')
+--- output ---
+firstmate: skipped: cannot determine default branch
+reread-firstmate: no
+restart-secondmates: none
+nudge-secondmates: none

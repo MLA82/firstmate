@@ -1,0 +1,6 @@
+ok - T11 unsafe secondmate home is not fast-forwarded
+ok - T12 a self-update rebinds a locally armed watch on the primary
+ok - T12 untracked-only working tree fast-forwards successfully
+ok - T13 tracked-file modification still blocks fast-forward
+ok - T14 a fast-forward blocked by a colliding untracked file is reported cleanly, not swallowed
+# all fm-update tests passed
