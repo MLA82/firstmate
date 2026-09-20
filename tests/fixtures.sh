@@ -123,7 +123,7 @@ case "${1:-}" in
     # Model only the shell's lease-acquire command; never execute a worker.
     for a in "$@"; do
       case "$a" in
-        'fm_slot=$(treehouse get --lease '* ) bash -c "$a" || true ;;
+        'fm_slot=$(treehouse get --lease '* ) SHELL=true bash -c "$a" </dev/null || true ;;
       esac
     done
     if [ -n "${FM_FAKE_LAUNCH_LOG:-}" ]; then

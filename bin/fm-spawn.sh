@@ -3850,7 +3850,11 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   SPAWN_LEASE_HOLDER=$(fm_treehouse_lease_holder "$ID" "$FM_HOME") || exit 1
   # Keep acquisition in the task shell so Treehouse uses the same pool config
   # and environment as before. A durable lease survives this shell's exit.
-  spawn_send_text_line "$WT_TARGET" "fm_slot=\$(treehouse get --lease --lease-holder $(shell_quote "$SPAWN_LEASE_HOLDER")) && [ -n \"\$fm_slot\" ] && cd -- \"\$fm_slot\""
+  # The worker then runs in a child shell inside the slot, as the interactive
+  # `treehouse get` subshell did: the endpoint's own shell stays in the project,
+  # so teardown's reap of processes under the slot never ends the endpoint
+  # itself before its own locked close.
+  spawn_send_text_line "$WT_TARGET" "fm_slot=\$(treehouse get --lease --lease-holder $(shell_quote "$SPAWN_LEASE_HOLDER")) && [ -n \"\$fm_slot\" ] && ( cd -- \"\$fm_slot\" && exec \"\${SHELL:-/bin/sh}\" )"
 
   # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
   # Target the stable window id, not the name: if the name is ever lost (e.g. an
