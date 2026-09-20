@@ -860,12 +860,20 @@ grep -F "did not enter an isolated worktree" "$TMP_ROOT/abort-b.err" >/dev/null 
   || fail "post-create abort fixture B did not reach the armed validation failure"
 ABORT_A_PANE=$(cat "$POST_CREATE_ABORT_CONTROL/abort-a/task-pane")
 ABORT_B_PANE=$(cat "$POST_CREATE_ABORT_CONTROL/abort-b/task-pane")
-ABORT_SEQUENCE=$(sed -n "$((ABORT_FOCUS_START + 1)),\$p" "$FOCUS_AUDIT_LOG" | awk -F '\t' -v a="$ABORT_A_PANE" -v b="$ABORT_B_PANE" '
+# A task pane that is a lone idle shell is removed through Herdr's pane-death
+# path, which logs no pane.close (see assert_cleanup_focus_preserved), so each
+# task's close is any pane.close inside its own projected workspace, the seeded
+# pane's prune included, and consecutive closes of one task collapse into one.
+ABORT_A_WS=$(cat "$POST_CREATE_ABORT_CONTROL/abort-a/workspace")
+ABORT_B_WS=$(cat "$POST_CREATE_ABORT_CONTROL/abort-b/workspace")
+[ -n "$ABORT_A_WS" ] && [ -n "$ABORT_B_WS" ] || fail "post-create abort fixtures did not record their projected workspaces"
+ABORT_SEQUENCE=$(sed -n "$((ABORT_FOCUS_START + 1)),\$p" "$FOCUS_AUDIT_LOG" | awk -F '\t' \
+  -v a="$ABORT_A_PANE" -v b="$ABORT_B_PANE" -v wa="$ABORT_A_WS" -v wb="$ABORT_B_WS" '
   $1 == "workspace-create" && $4 ~ /^└ abort-a · p:/ { print "create-a" }
   $1 == "workspace-create" && $4 ~ /^└ abort-b · p:/ { print "create-b" }
-  $1 == "pane-close" && $4 == a { print "close-a" }
-  $1 == "pane-close" && $4 == b { print "close-b" }
-')
+  $1 == "pane-close" && ($4 == a || index($4, wa ":") == 1) { print "close-a" }
+  $1 == "pane-close" && ($4 == b || index($4, wb ":") == 1) { print "close-b" }
+' | uniq)
 case "$ABORT_SEQUENCE" in
   $'create-a\nclose-a\ncreate-b\nclose-b'|$'create-b\nclose-b\ncreate-a\nclose-a') ;;
   *) fail "concurrent post-create abort cleanup interleaved outside the presentation lock: $ABORT_SEQUENCE" ;;
