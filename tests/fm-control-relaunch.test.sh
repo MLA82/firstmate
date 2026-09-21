@@ -246,6 +246,7 @@ run_control() {  # <case-dir> <args...>
     FM_FAKE_TRACE_RELEASE="${FM_FAKE_TRACE_RELEASE:-}" \
     FM_FAKE_META_WRITER_READY="${FM_FAKE_META_WRITER_READY:-}" \
     FM_FAKE_TRACE_EXPORTED="${FM_FAKE_TRACE_EXPORTED:-}" \
+    FM_FAKE_QUOTA_LOG="${FM_FAKE_QUOTA_LOG:-}" \
     "$CONTROL" "$@" 2>&1
 }
 
@@ -260,6 +261,7 @@ run_spawn() {  # <case-dir> <args...>
     PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
     HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
     FM_SPAWN_NO_GUARD=1 GROK_HOME="$dir/grokhome" \
+    FM_FAKE_QUOTA_LOG="${FM_FAKE_QUOTA_LOG:-}" \
     "$SPAWN" "$@" 2>&1
 }
 
@@ -385,6 +387,51 @@ test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   assert_grep "/exit" "$dir/fake/literal" "the previous agent should have been exited"
   assert_grep "encode launch-brief" "$dir/fake/literal" "the replacement should have been launched"
   pass "fm-control relaunch: a same-harness relaunch replaces the agent in the same endpoint and worktree"
+}
+
+test_claude_relaunch_keeps_the_recorded_account_binding() {
+  local dir out rc bound other quota_log launch
+  dir=$(new_case account-binding rl81)
+  add_ship_task "$dir" rl81 claude
+  bound="$dir/bound-profile"
+  other="$dir/other-profile"
+  quota_log="$dir/quota.log"
+  mkdir -p "$bound" "$other" "$dir/home/config"
+  printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":5,"runway":{"status":"through_reset"},"selection":{"status":"known","spendPriority":-8}}]}}]}' > "$bound/quota.json"
+  printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":95,"runway":{"status":"through_reset"},"selection":{"status":"known","spendPriority":0.8}}]}}]}' > "$other/quota.json"
+  jq -n --arg bound "$bound" --arg other "$other" \
+    '{profiles:[{name:"bound",config_dir:$bound},{name:"other",config_dir:$other}]}' \
+    > "$dir/home/config/claude-profiles.json"
+  printf '%s\n' 'claude_profile=bound' "claude_config_dir=$bound" >> "$dir/home/state/rl81.meta"
+  cat > "$dir/fakebin/quota-axi" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = --help ]; then
+  printf '%s\n' 'flags: --provider claude --profile-only --json'
+  exit 0
+fi
+printf '%s\n' "${CLAUDE_CONFIG_DIR:-unset}|$*" >> "${FM_FAKE_QUOTA_LOG:?}"
+cat "$CLAUDE_CONFIG_DIR/quota.json"
+SH
+  chmod +x "$dir/fakebin/quota-axi"
+
+  out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+    run_control "$dir" rl81 relaunch --note "continue on the same account"); rc=$?
+  expect_code 0 "$rc" "a bound Claude relaunch should succeed"$'\n'"$out"
+  [ "$(meta_field "$dir" rl81 claude_profile)" = bound ] \
+    || fail "relaunch changed the recorded Claude profile name"
+  [ "$(meta_field "$dir" rl81 claude_config_dir)" = "$bound" ] \
+    || fail "relaunch changed the recorded Claude profile directory"
+  [ "$(wc -l < "$quota_log" | tr -d ' ')" = 1 ] \
+    || fail "relaunch re-ran account selection instead of validating one binding: $(cat "$quota_log")"
+  assert_grep "$bound|--provider claude --profile-only --json" "$quota_log" \
+    "relaunch did not validate the recorded profile in isolation"
+  assert_no_grep "$other|" "$quota_log" \
+    "relaunch reconsidered the higher-capacity account"
+  launch=$(grep 'encode launch-brief' "$dir/fake/literal" | tail -1)
+  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$bound'" \
+    "replacement launch did not reuse the recorded Claude config directory"
+  pass "Claude relaunch validates and reuses its persisted account binding without reselection"
 }
 
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text() {
@@ -2198,6 +2245,7 @@ test_relaunch_moves_a_drifted_item_back_in_flight() {
 }
 
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
+test_claude_relaunch_keeps_the_recorded_account_binding
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
 test_relaunch_from_linked_home_preserves_recorded_worktree
