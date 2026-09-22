@@ -411,7 +411,7 @@ The selected profile name and canonical directory are persisted in that task's d
 Trust registration and the Claude process both receive that exact directory through `CLAUDE_CONFIG_DIR`.
 Relaunch and recovery validate and reuse the recorded binding without comparing later quota values, including after the local configuration changes.
 A legacy task that predates this record stays on its historical ambient store when relaunched instead of acquiring a new account silently.
-Switching an existing non-Claude task to Claude selects and records an account once; switching away preserves the binding so a later switch back returns to the same account.
+The binding is a Claude-only axis, exactly like model and effort: switching harness away from Claude clears it along with those axes, and switching back to Claude selects fresh from current isolated quota rather than reusing whatever account the task happened to hold before the switch.
 
 The account axis deliberately does not extend `config/crew-dispatch.json`.
 That file selects task-fit harness, model, and effort profiles, while every configured Claude account offers the same selected Claude runtime profile and differs only by local credential store and quota.

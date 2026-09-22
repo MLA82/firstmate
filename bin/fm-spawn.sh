@@ -3182,7 +3182,7 @@ elif [ "$KIND" = secondmate ] && [ -f "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.
   CLAUDE_PROFILE_META="$STATE/$ID.meta"
   CLAUDE_PROFILE_PRIOR_HARNESS=$(fm_meta_get "$CLAUDE_PROFILE_META" harness)
 fi
-if [ -n "$CLAUDE_PROFILE_META" ]; then
+if [ "$HARNESS" = claude ] && [ -n "$CLAUDE_PROFILE_META" ]; then
   CLAUDE_PROFILE_NAME=$(fm_meta_get "$CLAUDE_PROFILE_META" claude_profile)
   CLAUDE_PROFILE_CONFIG_DIR=$(fm_meta_get "$CLAUDE_PROFILE_META" claude_config_dir)
   if { [ -n "$CLAUDE_PROFILE_NAME" ] && [ -z "$CLAUDE_PROFILE_CONFIG_DIR" ]; } ||

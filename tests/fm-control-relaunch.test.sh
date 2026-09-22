@@ -709,6 +709,55 @@ test_harness_switch_does_not_carry_the_old_profile_axes() {
   pass "fm-control relaunch: a harness switch resets model and effort unless they are named too"
 }
 
+test_harness_switch_away_and_back_reselects_claude_profile_by_quota() {
+  local dir out rc bound other quota_log
+  dir=$(new_case profile-switch rl82)
+  add_ship_task "$dir" rl82 claude
+  bound="$dir/bound-profile"
+  other="$dir/other-profile"
+  quota_log="$dir/quota.log"
+  mkdir -p "$bound" "$other" "$dir/home/config"
+  printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":5,"runway":{"status":"through_reset"},"selection":{"status":"known","spendPriority":-8}}]}}]}' > "$bound/quota.json"
+  printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":95,"runway":{"status":"through_reset"},"selection":{"status":"known","spendPriority":0.8}}]}}]}' > "$other/quota.json"
+  jq -n --arg bound "$bound" --arg other "$other" \
+    '{profiles:[{name:"bound",config_dir:$bound},{name:"other",config_dir:$other}]}' \
+    > "$dir/home/config/claude-profiles.json"
+  printf '%s\n' 'claude_profile=bound' "claude_config_dir=$bound" >> "$dir/home/state/rl82.meta"
+  cat > "$dir/fakebin/quota-axi" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = --help ]; then
+  printf '%s\n' 'flags: --provider claude --profile-only --json'
+  exit 0
+fi
+printf '%s\n' "${CLAUDE_CONFIG_DIR:-unset}|$*" >> "${FM_FAKE_QUOTA_LOG:?}"
+cat "$CLAUDE_CONFIG_DIR/quota.json"
+SH
+  chmod +x "$dir/fakebin/quota-axi"
+
+  printf 'codex' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl82 relaunch --harness codex --note "switching runtime"); rc=$?
+  expect_code 0 "$rc" "the switch away from claude should succeed"$'\n'"$out"
+  [ -z "$(meta_field "$dir" rl82 claude_profile)" ] \
+    || fail "the Claude account binding must not carry to a non-Claude harness"
+  [ -z "$(meta_field "$dir" rl82 claude_config_dir)" ] \
+    || fail "the Claude config directory must not carry to a non-Claude harness"
+
+  printf 'claude' > "$dir/fake/becomes"
+  out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+    run_control "$dir" rl82 relaunch --harness claude --note "switching back"); rc=$?
+  expect_code 0 "$rc" "the switch back to claude should succeed"$'\n'"$out"
+  [ "$(meta_field "$dir" rl82 claude_profile)" = other ] \
+    || fail "switching back to claude must reselect by current quota instead of reusing the stale binding"
+  [ "$(wc -l < "$quota_log" | tr -d ' ')" = 2 ] \
+    || fail "switching back to claude must measure both profiles, not validate one binding: $(cat "$quota_log")"
+  assert_grep "$bound|--provider claude --profile-only --json" "$quota_log" \
+    "reselection did not measure the previously bound profile"
+  assert_grep "$other|--provider claude --profile-only --json" "$quota_log" \
+    "reselection did not measure the higher-capacity profile"
+  pass "fm-control relaunch: switching harness away and back reselects the Claude account by current quota"
+}
+
 test_harness_switch_resolves_a_prefixed_recorded_harness() {
   local dir out rc auth
   dir=$(new_case prefixcontrol rl32)
@@ -2256,6 +2305,7 @@ test_relaunch_appends_the_progress_note_to_the_instructions
 test_relaunch_requires_a_note_for_a_ship_task
 test_harness_switch_moves_the_record_and_clears_prior_wiring
 test_harness_switch_does_not_carry_the_old_profile_axes
+test_harness_switch_away_and_back_reselects_claude_profile_by_quota
 test_harness_switch_resolves_a_prefixed_recorded_harness
 test_prefixed_recorded_harness_requires_explicit_replacement
 test_same_harness_relaunch_keeps_the_profile_axes
