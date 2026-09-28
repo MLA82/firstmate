@@ -13,6 +13,7 @@ Busy hooks verified 2026-07-28 on Claude Code 2.1.220.
 | Model | `--model <model>`; discover through the interactive `/model` picker, with alias or full-name shape documented by `claude --help`. |
 | Effort | `--effort <low\|medium\|high\|xhigh\|max>`, verified on 2.1.196. |
 | Permissions | `--dangerously-skip-permissions` by default, or `--permission-mode auto` when `config/claude-permission-mode` is `auto`; the `auto` shape verified on 2.1.269, and `../../../../../docs/configuration.md` "Claude permission mode" owns the file. |
+| Account | `config/claude-profiles.json` optionally selects one existing store from isolated quota evidence and binds it to the assignment; `../../../../../docs/configuration.md` "Claude account profiles" owns the schema and behavior. |
 
 ## Workspace trust
 
@@ -54,6 +55,12 @@ CLI `--prompt-suggestions` affects print or SDK mode only and did not suppress i
 As defense in depth, `fm_composer_strip_ghost` in `../../../bin/fm-composer-lib.sh` removes SGR-2 runs before pending classification on styled tmux, Herdr, and Zellij readers.
 `../../../docs/herdr-backend.md` under "Composer and injection safety" owns dark-TRUECOLOR tradeoffs and `../../../docs/verification/runtime-backends.md` owns captures.
 Styled capture stays internal to the boolean detector; `fm-peek` and model-facing captures remain plain, without escapes.
+
+## Transcript persistence
+
+Claude Code disables transcript persistence when a new process inherits `CLAUDE_CODE_CHILD_SESSION` unless its process environment also sets `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1`.
+`fm-spawn.sh` scopes that override to every new Claude ship, scout, and secondmate process without changing global Claude configuration.
+This is a vendor startup-time limitation, so the override does not alter an already-running session that started with persistence disabled.
 
 ## Feedback drafts
 

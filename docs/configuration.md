@@ -703,7 +703,7 @@ Each seed writes an `.fm-secondmate-home` identity marker at the home root, alon
 The tracked root `.gitignore` ignores both markers, so validation can read them without making a freshly seeded home appear dirty to porcelain-based safety checks.
 
 This does not relax protection for any other untracked file.
-An existing linked-worktree home that predates this rule advances through its marker-only state during its next bootstrap or spawn local sync, after which Git ignores the marker normally.
+An existing linked-worktree home that predates this rule advances through its marker-only state during its next bootstrap or spawn local sync, because untracked-only paths never block that fast-forward, after which Git ignores the marker normally.
 
 A local standalone-clone home cannot receive a primary-local commit through that no-fetch sync, so it receives the rule through `/updatefirstmate`'s origin refresh instead.
 
@@ -871,6 +871,49 @@ Pins are not inherited into secondmate homes: a local secondmate agent launches 
 A remote secondmate is launched on its host from its own home's configuration, so create the file in that remote home.
 
 [`bin/fm-worker-account-lib.sh`](../bin/fm-worker-account-lib.sh) owns parsing, the sign-in check, and the full list of credentials a Claude launch unsets; [runtime backend verification](verification/runtime-backends.md#worker-account-pin-sign-in-check) records the check against the real runners.
+
+## Claude account profiles (config/claude-profiles.json)
+
+The optional local, gitignored `config/claude-profiles.json` is a readable regular non-symlink file declaring the existing Claude config directories that Firstmate may use for new Claude assignments.
+It stores names and absolute directory references only, never `.credentials.json` contents, OAuth data, tokens, or copied profile material.
+Each referenced profile remains owned by Claude Code in its original directory.
+
+```json
+{
+  "profiles": [
+    { "name": "personal", "config_dir": "/home/example/.claude" },
+    { "name": "work", "config_dir": "/home/example/.claude-profiles/work" }
+  ]
+}
+```
+
+The top level contains only `profiles`, which is a non-empty array of objects containing exactly `name` and `config_dir`.
+Names are unique, begin with an ASCII letter or digit, and then use only letters, digits, `.`, `_`, `@`, `+`, or `-`.
+Every `config_dir` is a unique absolute path without control characters.
+The configured paths must resolve to distinct readable and searchable directories.
+A missing file preserves the historical single-profile behavior exactly: an ambient absolute `CLAUDE_CONFIG_DIR` is forwarded when set, and otherwise Claude uses its ordinary default store.
+
+For each fresh Claude crewmate, scout, or second mate, `fm-spawn.sh` runs one isolated measurement per configured profile with `CLAUDE_CONFIG_DIR=<config_dir> quota-axi --provider claude --profile-only --json`.
+`--profile-only` prevents Keychain, Pi, CLI RPC, fallback, refresh, and cache discovery, so evidence for one configured profile cannot silently come from another account.
+The selector applies quota-axi's existing account eligibility semantics to applicable all-model, all-product, and selected-model rows.
+An exhausted profile is ineligible, a profile with unknown or incomplete quota remains eligible but unranked uncertainty, and rankable profiles are compared by their limiting `spendPriority` value so the account with the better current completion-aware capacity is selected.
+A numeric tie is settled by lexical profile name, which is deterministic and independent of array order; once one account's capacity drops below the other's, the next assignment naturally selects the other account.
+When no profile has rankable evidence, automatic selection stops and names the uncertain or exhausted profiles rather than pretending unknown capacity is zero.
+A malformed declaration, unsupported quota-axi build, missing or unreadable directory, failed isolated measurement, unauthenticated profile, or invalid quota snapshot stops the launch and never falls through to another profile.
+
+The selected profile name and canonical directory are persisted in that task's durable record as `claude_profile=` and `claude_config_dir=`.
+Trust registration and the Claude process both receive that exact directory through `CLAUDE_CONFIG_DIR`.
+Relaunch and recovery validate and reuse the recorded binding without comparing later quota values, including after the local configuration changes.
+A legacy task that predates this record stays on its historical ambient store when relaunched instead of acquiring a new account silently.
+The binding is a Claude-only axis, exactly like model and effort: switching harness away from Claude clears it along with those axes, and switching back to Claude selects fresh from current isolated quota rather than reusing whatever account the task happened to hold before the switch.
+
+The account axis deliberately does not extend `config/crew-dispatch.json`.
+That file selects task-fit harness, model, and effort profiles, while every configured Claude account offers the same selected Claude runtime profile and differs only by local credential store and quota.
+Keeping account expansion inside `fm-spawn.sh` gives the binding one metadata owner and prevents a typed resolver result, manual dispatch, or recovery path from bypassing account selection.
+
+`config/claude-profiles.json` is local to this home and is NOT inherited into secondmate homes; a secondmate that wants this same quota-balanced selection declares its own file.
+
+A home's separate [worker account pin](#worker-account-pin-configclaude-account-configpi-account) (`config/claude-account`) takes priority over this profile selection for the actual Claude launch when both are configured for the same home, but profile selection still runs and can still refuse the launch on a malformed `config/claude-profiles.json` even when a pin would otherwise have made that selection moot; configuring both in one home is not recommended until that overlap is resolved.
 
 ## Lavish server address (config/lavish-axi-host)
 

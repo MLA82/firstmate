@@ -77,6 +77,43 @@ enable_dispatch_profile() {
     > "$home/config/crew-dispatch.json"
 }
 
+install_fake_claude_profile_quota() { # <fakebin>
+  local fakebin=$1
+  cat > "$fakebin/quota-axi" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = --help ]; then
+  printf '%s\n' 'flags: --provider claude --profile-only --json'
+  exit 0
+fi
+printf '%s\n' "${CLAUDE_CONFIG_DIR:-unset}|$*" >> "${FM_FAKE_QUOTA_LOG:?}"
+[ ! -e "${CLAUDE_CONFIG_DIR:?}/quota-fail" ] || exit 1
+cat "$CLAUDE_CONFIG_DIR/quota.json"
+SH
+  chmod +x "$fakebin/quota-axi"
+}
+
+write_claude_profile_quota() { # <dir> <spend-priority>|unknown|exhausted
+  local dir=$1 value=$2
+  mkdir -p "$dir"
+  case "$value" in
+    unknown)
+      printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","state":{"status":"fresh"},"quotaSemantics":{"status":"unknown","effectiveAvailability":[]}}]}' > "$dir/quota.json"
+      ;;
+    exhausted)
+      printf '%s\n' '{"schemaVersion":5,"providers":[{"provider":"claude","state":{"status":"fresh"},"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"status":"known","spendPriority":-9}}]}}]}' > "$dir/quota.json"
+      ;;
+    *)
+      printf '%s\n' "{\"schemaVersion\":5,\"providers\":[{\"provider\":\"claude\",\"state\":{\"status\":\"fresh\"},\"quotaSemantics\":{\"status\":\"known\",\"effectiveAvailability\":[{\"scope\":\"all_models\",\"status\":\"known\",\"effectivePercentRemaining\":50,\"runway\":{\"status\":\"through_reset\"},\"selection\":{\"status\":\"known\",\"spendPriority\":$value}}]}}]}" > "$dir/quota.json"
+      ;;
+  esac
+}
+
+write_claude_profiles_config() { # <home> <name-a> <dir-a> <name-b> <dir-b>
+  jq -n --arg an "$2" --arg ad "$3" --arg bn "$4" --arg bd "$5" \
+    '{profiles:[{name:$an,config_dir:$ad},{name:$bn,config_dir:$bd}]}' > "$1/config/claude-profiles.json"
+}
+
 make_seeded_secondmate_home() {
   local home=$1 id=$2
   mkdir -p "$home/bin" "$home/data"
@@ -1041,6 +1078,135 @@ test_batch_forwards_shared_profile_flags() {
   pass "batch dispatch forwards shared --harness, --model, and --effort to every pair"
 }
 
+test_claude_profiles_choose_best_isolated_quota_and_bind_metadata() {
+  local rec id out status launch personal work quota_log
+  id=profile-claude-accounts-z16a
+  rec=$(make_spawn_case profile-claude-accounts claude "$id")
+  read_case_record "$rec"
+  personal="$CASE_DIR/personal-profile"
+  work="$CASE_DIR/work-profile"
+  quota_log="$CASE_DIR/quota.log"
+  write_claude_profile_quota "$personal" -1.4
+  write_claude_profile_quota "$work" -0.2
+  write_claude_profiles_config "$HOME_DIR" personal "$personal" work "$work"
+  install_fake_claude_profile_quota "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+    run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "Claude multi-profile spawn should succeed"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$work'" \
+    "the profile with better current spendPriority was not bound to the launch"
+  assert_grep 'claude_profile=work' "$HOME_DIR/state/$id.meta" \
+    "the selected profile name was not persisted"
+  assert_grep "claude_config_dir=$work" "$HOME_DIR/state/$id.meta" \
+    "the selected profile path was not persisted"
+  [ -f "$work/.claude.json" ] \
+    || fail "Claude trust was not registered in the selected profile store"
+  [ ! -e "$personal/.claude.json" ] \
+    || fail "Claude trust registration wrote into the unselected profile store"
+  [ "$(wc -l < "$quota_log" | tr -d ' ')" = 2 ] \
+    || fail "each configured profile must be measured exactly once: $(cat "$quota_log")"
+  assert_grep "$personal|--provider claude --profile-only --json" "$quota_log" \
+    "the personal profile was not measured in isolation"
+  assert_grep "$work|--provider claude --profile-only --json" "$quota_log" \
+    "the work profile was not measured in isolation"
+  pass "Claude profile selection measures both accounts independently and persists the better current binding"
+}
+
+test_claude_profiles_break_equal_quota_by_name_not_array_order() {
+  local rec id out status alpha zeta quota_log
+  id=profile-claude-tie-z16aa
+  rec=$(make_spawn_case profile-claude-tie claude "$id")
+  read_case_record "$rec"
+  alpha="$CASE_DIR/alpha-profile"
+  zeta="$CASE_DIR/zeta-profile"
+  quota_log="$CASE_DIR/quota.log"
+  write_claude_profile_quota "$alpha" -0.5
+  write_claude_profile_quota "$zeta" -0.5
+  write_claude_profiles_config "$HOME_DIR" zeta "$zeta" alpha "$alpha"
+  install_fake_claude_profile_quota "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+    run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "equal Claude profile evidence should resolve deterministically"$'\n'"$out"
+  assert_grep 'claude_profile=alpha' "$HOME_DIR/state/$id.meta" \
+    "equal quota followed array order instead of the lexical profile-name tie-break"
+  pass "equal Claude profile evidence uses a deterministic name tie-break independent of array order"
+}
+
+test_claude_profiles_keep_unmeasurable_account_as_uncertainty() {
+  local rec id out status measured unknown quota_log
+  id=profile-claude-unknown-z16b
+  rec=$(make_spawn_case profile-claude-unknown claude "$id")
+  read_case_record "$rec"
+  measured="$CASE_DIR/measured-profile"
+  unknown="$CASE_DIR/unknown-profile"
+  quota_log="$CASE_DIR/quota.log"
+  write_claude_profile_quota "$measured" -0.7
+  write_claude_profile_quota "$unknown" unknown
+  write_claude_profiles_config "$HOME_DIR" measured "$measured" unknown "$unknown"
+  install_fake_claude_profile_quota "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+    run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "one measured account should remain selectable beside quota uncertainty"$'\n'"$out"
+  assert_contains "$out" "unmeasurable quota remained eligible but unranked: unknown" \
+    "the unknown profile was not disclosed as eligible uncertainty"
+  assert_grep 'claude_profile=measured' "$HOME_DIR/state/$id.meta" \
+    "the measured eligible profile was not selected"
+  pass "an unmeasurable Claude account remains disclosed uncertainty while rankable capacity can win"
+}
+
+test_claude_profiles_refuse_unsafe_or_unauthenticated_entries() {
+  local kind rec id out status first second quota_log
+  for kind in relative missing unreadable unauthenticated; do
+    id="profile-claude-refuse-$kind"
+    rec=$(make_spawn_case "profile-claude-refuse-$kind" claude "$id")
+    read_case_record "$rec"
+    first="$CASE_DIR/first-profile"
+    second="$CASE_DIR/second-profile"
+    quota_log="$CASE_DIR/quota.log"
+    write_claude_profile_quota "$first" -0.5
+    write_claude_profile_quota "$second" -0.4
+    install_fake_claude_profile_quota "$FAKEBIN_DIR"
+    case "$kind" in
+      relative)
+        write_claude_profiles_config "$HOME_DIR" first "$first" second relative-profile
+        ;;
+      missing)
+        write_claude_profiles_config "$HOME_DIR" first "$first" second "$CASE_DIR/absent-profile"
+        ;;
+      unreadable)
+        chmod 000 "$second"
+        write_claude_profiles_config "$HOME_DIR" first "$first" second "$second"
+        ;;
+      unauthenticated)
+        : > "$second/quota-fail"
+        write_claude_profiles_config "$HOME_DIR" first "$first" second "$second"
+        ;;
+    esac
+
+    out=$(FM_FAKE_QUOTA_LOG="$quota_log" \
+      run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+    status=$?
+    expect_code 1 "$status" "$kind Claude profile must refuse the spawn"
+    case "$kind" in
+      relative) assert_contains "$out" "unique absolute paths" "relative-path refusal was not actionable" ;;
+      missing) assert_contains "$out" "is missing or is not a directory" "missing-path refusal was not actionable" ;;
+      unreadable) assert_contains "$out" "is not readable and searchable" "unreadable-path refusal was not actionable" ;;
+      unauthenticated) assert_contains "$out" "is not authenticated or quota-axi could not read that profile in isolation" "authentication refusal was not actionable" ;;
+    esac
+    [ ! -s "$LAUNCH_LOG" ] || fail "$kind profile refusal launched a worker"
+    assert_absent "$HOME_DIR/state/$id.meta" "$kind profile refusal published task metadata"
+    [ "$kind" != unreadable ] || chmod 700 "$second"
+  done
+  pass "relative, missing, unreadable, and unauthenticated Claude profiles stop safely without account fallback"
+}
+
 test_claude_forwards_firstmate_config_dir_when_set() {
   local rec id out status launch
   id=profile-claude-cfgdir-z17
@@ -1055,7 +1221,7 @@ test_claude_forwards_firstmate_config_dir_when_set() {
   status=$?
   expect_code 0 "$status" "claude spawn with CLAUDE_CONFIG_DIR set should succeed"
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
+  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 claude --dangerously-skip-permissions --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
     "claude launch did not forward firstmate's CLAUDE_CONFIG_DIR to the crewmate pane"
   pass "claude forwards firstmate's CLAUDE_CONFIG_DIR so the crewmate uses the same credential store"
 }
@@ -1652,7 +1818,7 @@ claude_expected_launch() {  # <launch> <home> <id> <permission-flag>
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1 claude $4 --settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
@@ -1781,6 +1947,10 @@ test_pi_signed_threads_shared_pi_profile_and_preserves_identity
 test_pi_signed_missing_binary_refuses_before_endpoint_or_metadata
 test_pi_signed_persistent_secondmate_uses_pi_extensions_and_identity
 test_batch_forwards_shared_profile_flags
+test_claude_profiles_choose_best_isolated_quota_and_bind_metadata
+test_claude_profiles_break_equal_quota_by_name_not_array_order
+test_claude_profiles_keep_unmeasurable_account_as_uncertainty
+test_claude_profiles_refuse_unsafe_or_unauthenticated_entries
 test_claude_forwards_firstmate_config_dir_when_set
 test_lavish_server_address_is_exported_to_worker_launch
 test_lavish_absent_config_preserves_destination_ambient

@@ -131,8 +131,11 @@
 # These refusals are not relaxed by --force: --force authorizes discarding THIS
 # task's unlanded work, never another task's live work. Nothing of this task's
 # own is removed by a refusal; reconcile whichever record is wrong and re-run.
-# Orca is not a pool slot and proves its path through
-# require_orca_worktree_path_match instead.
+# Orca is not a pool slot: it proves its recorded worktree through
+# require_orca_worktree_path_match instead, at the same single ownership
+# determination (require_owned_task_worktree_slot) and therefore before every
+# destructive step, --force included. An Orca worktree path that is already
+# gone has nothing left to protect and needs no proof.
 # Orca tasks use the same safety checks, then close the recorded terminal and
 # remove the recorded worktree through `orca worktree rm`; teardown never guesses
 # an Orca target from ambient CLI state.
@@ -1118,7 +1121,6 @@ if [ -z "$BUSY_GEN" ]; then
   BUSY_GEN=$(cat "$STATE/$ID.busy-gen" 2>/dev/null || true)
 fi
 ORCA_WORKTREE_ID=$(fm_meta_get "$META" orca_worktree_id)
-ORCA_PATH_MATCH_VERIFIED=0
 CLEANUP_RECOVERY=$TEARDOWN_CLEANUP_RECOVERY
 
 KIND=$TEARDOWN_META_KIND
@@ -1712,6 +1714,9 @@ TEARDOWN_PROCEVENT_RESTORE_FAILED=4
 
 # True when treehouse/git stderr shows the transient index.lock "File exists" race.
 # Other return failures must not enter the retry path.
+# Matches git's own English text, so every `treehouse return` this guards runs
+# under LC_ALL=C - a non-English operator locale otherwise disables the retry
+# (pinned by test_transient_index_lock_retry_is_locale_independent).
 treehouse_return_is_index_lock_error() {
   local text=$1
   printf '%s\n' "$text" | grep -Eq "Unable to create ['\"].*index\\.lock['\"]: File exists"
@@ -1777,7 +1782,7 @@ teardown_treehouse_return() {
 
   # Capture stdout+stderr so non-lock failures stay visible and lock failures can
   # be matched by signature even when the lock file is already gone mid-check.
-  if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+  if out=$( ( cd "$cd_dir" && LC_ALL=C treehouse return --force "$dir" ) 2>&1 ); then
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
   fi
@@ -1802,7 +1807,7 @@ teardown_treehouse_return() {
     echo "teardown: $label return failed with transient git lock ($lock_desc); waiting ${TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS}s and retrying ($attempt/${max_retries})" >&2
     sleep "$TREEHOUSE_RETURN_LOCK_RETRY_WAIT_SECS"
 
-    if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+    if out=$( ( cd "$cd_dir" && LC_ALL=C treehouse return --force "$dir" ) 2>&1 ); then
       [ -n "$out" ] && printf '%s\n' "$out"
       echo "teardown: $label return succeeded on retry; lock cleared on its own" >&2
       return 0
@@ -1829,7 +1834,7 @@ teardown_treehouse_return() {
           return 1
         fi
       fi
-      if out=$( ( cd "$cd_dir" && treehouse return --force "$dir" ) 2>&1 ); then
+      if out=$( ( cd "$cd_dir" && LC_ALL=C treehouse return --force "$dir" ) 2>&1 ); then
         [ -n "$out" ] && printf '%s\n' "$out"
         echo "teardown: $label return succeeded after stale-lock cleanup" >&2
         return 0
@@ -2413,14 +2418,26 @@ require_owned_worktree_slot_record() {  # <task-id> <worktree>
   return 1
 }
 
-# The one ownership determination for this task's recorded slot. Every later
-# step that would read or touch $WT consults teardown_owns_worktree, so a
-# reassigned slot is skipped consistently rather than by each step's own guess.
+# The one ownership determination for this task's recorded slot, treehouse
+# pool or Orca alike. Every later step that would read or touch $WT consults
+# teardown_owns_worktree, so a reassigned slot is skipped consistently rather
+# than by each step's own guess, and Fix 1/Fix 2 below can never run ahead of
+# either backend's own ownership proof - this runs long before them, not
+# beside them at each individual destructive call site.
 TEARDOWN_SLOT_REASSIGNED=0
 TEARDOWN_SLOT_REASSIGNED_TO=
 TEARDOWN_SLOT_REASSIGNED_HOME=
 require_owned_task_worktree_slot() {
   local slot rc=0
+  # Orca is not a pool slot; it owns its own worktree and proves that through
+  # require_orca_worktree_path_match_if_present instead of the treehouse claim
+  # below. Whenever $WT still exists, that function refuses on any unresolved
+  # proof (missing CLI, mismatched path); when $WT is absent there is nothing
+  # left to protect, so it returns without calling Orca at all.
+  if [ "$KIND" != secondmate ] && [ "$BACKEND" = orca ]; then
+    require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || return 1
+    return 0
+  fi
   slot=$(teardown_live_slot_path) || return 0
   require_owned_worktree_slot_record "$ID" "$slot" || rc=$?
   case "$rc" in
@@ -3409,14 +3426,16 @@ if [ -n "$X_REQUEST" ]; then
   echo "warning: task $ID still carries an unreconciled Relay request link ($X_REQUEST) on its task record." >&2
 fi
 
+# require_owned_task_worktree_slot already proved this task's own recorded
+# worktree id resolves to $WT (or tolerated its absence) before any refusal
+# above ran. A ship task additionally requires the worktree to still be
+# inspectable, since the landed/dirty-work checks above need it.
 if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] && [ "$FORCE" != "--force" ]; then
   if ! inspectable_git_worktree "$WT"; then
     echo "REFUSED: Orca ship task $ID has no inspectable git worktree at ${WT:-<missing>}." >&2
     echo "Cannot verify dirty or unlanded work; restore the worktree path or get explicit OK to discard, then --force." >&2
     exit 1
   fi
-  require_orca_worktree_path_match "$ORCA_WORKTREE_ID" "$WT" || exit 1
-  ORCA_PATH_MATCH_VERIFIED=1
 fi
 
 if teardown_owns_worktree && [ -d "$WT" ] && [ "$FORCE" != "--force" ]; then
@@ -3528,12 +3547,13 @@ else
 fi
 
 # Every landed/discard-work refusal above has now passed (or --force skipped
-# them). Fix 1 and Fix 2 (see script header) run here, unconditionally on
-# --force, and before ANY destructive step below - a still-parked run or a
-# leaked process can own live work in this exact worktree. Not for
-# kind=secondmate: a secondmate home's own runtime lifecycle is owned by the
-# dedicated process-event and firstmate-home removal machinery further below,
-# not by task-worktree cleanup.
+# them), and require_owned_task_worktree_slot has already proved this task
+# still owns $WT - treehouse pool claim or Orca path match alike. Fix 1 and
+# Fix 2 (see script header) run here, unconditionally on --force, and before
+# ANY destructive step below - a still-parked run or a leaked process can own
+# live work in this exact worktree. Not for kind=secondmate: a secondmate
+# home's own runtime lifecycle is owned by the dedicated process-event and
+# firstmate-home removal machinery further below, not by task-worktree cleanup.
 if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
   conclude_task_no_mistakes_run "$WT"
   reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
@@ -3546,11 +3566,8 @@ fi
 "$SCRIPT_DIR/fm-remote-job-reap-orphans.sh" >&2 || true
 
 # Best-effort: drop the local task branch so the shared repo does not accumulate refs.
+# require_owned_task_worktree_slot already verified the Orca path match above.
 if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
-  if [ "$ORCA_PATH_MATCH_VERIFIED" != 1 ]; then
-    require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || exit 1
-    ORCA_PATH_MATCH_VERIFIED=1
-  fi
   if [ -d "$WT" ]; then
     branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
     if [ "$branch" != "HEAD" ]; then

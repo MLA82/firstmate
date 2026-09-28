@@ -132,12 +132,14 @@ state_value() { # <id>; prints recovery-grade state
 }
 
 print_route() { # <id>
-  local id=$1 harness model effort traceparent
+  local id=$1 harness model effort traceparent claude_profile claude_config_dir
   remote_endpoint_require "$id"
   harness=$(fm_meta_get "$REMOTE_ENDPOINT_META" harness)
   model=$(fm_meta_get "$REMOTE_ENDPOINT_META" model)
   effort=$(fm_meta_get "$REMOTE_ENDPOINT_META" effort)
   traceparent=$(fm_meta_get "$REMOTE_ENDPOINT_META" traceparent)
+  claude_profile=$(fm_meta_get "$REMOTE_ENDPOINT_META" claude_profile)
+  claude_config_dir=$(fm_meta_get "$REMOTE_ENDPOINT_META" claude_config_dir)
   printf 'schema=fm-remote-secondmate-control.v1\n'
   printf 'backend=%s\n' "$REMOTE_ENDPOINT_BACKEND"
   printf 'target=%s\n' "$REMOTE_ENDPOINT_TARGET"
@@ -145,6 +147,8 @@ print_route() { # <id>
   printf 'harness=%s\n' "$harness"
   printf 'model=%s\n' "$model"
   printf 'effort=%s\n' "$effort"
+  [ -z "$claude_profile" ] || printf 'claude_profile=%s\n' "$claude_profile"
+  [ -z "$claude_config_dir" ] || printf 'claude_config_dir=%s\n' "$claude_config_dir"
   [ -z "$traceparent" ] || printf 'traceparent=%s\n' "$traceparent"
 }
 
@@ -374,7 +378,7 @@ cmd_sync() {
     || die "remote home could not import $commit from this host's Firstmate copy or the home's origin; run /updatefirstmate to refresh this host's copy, or push that commit first"
   # ff_target publishes its verdict in FF_STATUS, so it must run in THIS shell.
   report=$(mktemp "${TMPDIR:-/tmp}/fm-remote-sync.XXXXXX") || die "cannot stage the sync report"
-  ff_target "$TARGET_HOME" "remote home" "$commit" yes yes "$id" "$TARGET_HOME/state" > "$report" 2>&1
+  ff_target "$TARGET_HOME" "remote home" "$commit" yes "$id" "$TARGET_HOME/state" > "$report" 2>&1
   out=$(cat "$report")
   rm -f "$report"
   case "$FF_STATUS" in
