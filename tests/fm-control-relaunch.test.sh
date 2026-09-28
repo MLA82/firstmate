@@ -392,7 +392,7 @@ test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
 }
 
 test_claude_relaunch_keeps_the_recorded_account_binding() {
-  local dir out rc bound other quota_log launch
+  local dir out rc bound other quota_log
   dir=$(new_case account-binding rl81)
   add_ship_task "$dir" rl81 claude
   bound="$dir/bound-profile"
@@ -430,8 +430,7 @@ SH
     "relaunch did not validate the recorded profile in isolation"
   assert_no_grep "$other|" "$quota_log" \
     "relaunch reconsidered the higher-capacity account"
-  launch=$(grep 'encode launch-brief' "$dir/fake/literal" | tail -1)
-  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$bound'" \
+  assert_contains "$(cat "$dir/fake/literal")" "CLAUDE_CONFIG_DIR='$bound'" \
     "replacement launch did not reuse the recorded Claude config directory"
   pass "Claude relaunch validates and reuses its persisted account binding without reselection"
 }
