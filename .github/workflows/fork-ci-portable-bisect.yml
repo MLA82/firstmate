@@ -1,0 +1,51 @@
+name: Fork CI portable bisect (manual)
+
+# Scratch, fork-only manually triggered workflow: repeats ONE portable
+# (fake-binary) behavior test file N times against an arbitrary ref, to
+# measure its flake rate. Not part of the integration branch; lives on its
+# own throwaway branch. Must never run automatically on push or pull_request.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Target ref (branch, tag, or SHA in MLA82/firstmate) to test'
+        required: true
+        type: string
+      repeats:
+        description: 'Number of repetitions'
+        required: false
+        type: string
+        default: '10'
+
+permissions:
+  contents: read
+
+jobs:
+  repeat-test:
+    name: Repeat tests/fm-backend-herdr.test.sh
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - name: Repeat the portable test file
+        run: |
+          set -u
+          n=${{ inputs.repeats }}
+          pass=0
+          fail=0
+          for i in $(seq 1 "$n"); do
+            echo "=== attempt $i/$n ==="
+            if bash tests/fm-backend-herdr.test.sh > "/tmp/attempt-$i.log" 2>&1; then
+              pass=$((pass + 1))
+              echo "attempt $i: PASS"
+            else
+              fail=$((fail + 1))
+              echo "attempt $i: FAIL"
+              grep -n "not ok" "/tmp/attempt-$i.log" || true
+            fi
+          done
+          echo "SUMMARY: pass=$pass fail=$fail total=$n"
+          [ "$fail" -eq 0 ]
