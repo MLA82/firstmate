@@ -132,12 +132,14 @@ state_value() { # <id>; prints recovery-grade state
 }
 
 print_route() { # <id>
-  local id=$1 harness model effort traceparent
+  local id=$1 harness model effort traceparent claude_profile claude_config_dir
   remote_endpoint_require "$id"
   harness=$(fm_meta_get "$REMOTE_ENDPOINT_META" harness)
   model=$(fm_meta_get "$REMOTE_ENDPOINT_META" model)
   effort=$(fm_meta_get "$REMOTE_ENDPOINT_META" effort)
   traceparent=$(fm_meta_get "$REMOTE_ENDPOINT_META" traceparent)
+  claude_profile=$(fm_meta_get "$REMOTE_ENDPOINT_META" claude_profile)
+  claude_config_dir=$(fm_meta_get "$REMOTE_ENDPOINT_META" claude_config_dir)
   printf 'schema=fm-remote-secondmate-control.v1\n'
   printf 'backend=%s\n' "$REMOTE_ENDPOINT_BACKEND"
   printf 'target=%s\n' "$REMOTE_ENDPOINT_TARGET"
@@ -145,6 +147,8 @@ print_route() { # <id>
   printf 'harness=%s\n' "$harness"
   printf 'model=%s\n' "$model"
   printf 'effort=%s\n' "$effort"
+  [ -z "$claude_profile" ] || printf 'claude_profile=%s\n' "$claude_profile"
+  [ -z "$claude_config_dir" ] || printf 'claude_config_dir=%s\n' "$claude_config_dir"
   [ -z "$traceparent" ] || printf 'traceparent=%s\n' "$traceparent"
 }
 

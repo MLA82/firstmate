@@ -315,6 +315,8 @@ When the file exists, `fm-spawn.sh` refuses crewmate and scout launches without 
 Secondmate launches are exempt because they resolve the secondmate harness and any optional secondmate model or effort tokens instead.
 Unsupported effort values are still recorded in task meta when passed to `fm-spawn.sh`, but the launch template omits any effort flag that the selected harness does not accept.
 That keeps spawn launch compatible across claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, gemini, muse, rovo, omp, agy, and devin while preserving the requested profile for later audit.
+Claude's optional, local, not-inherited account-store axis stays downstream of this task-fit decision: `fm-spawn.sh` expands one selected Claude runtime across `config/claude-profiles.json`, persists the resulting account binding with the task identity, and reuses it in recovery, while [configuration.md](configuration.md#claude-account-profiles-configclaude-profilesjson) owns the schema and selection behavior. A home's separate worker account pin (`config/claude-account`) takes priority over it when both are configured.
+This separation prevents account quota from duplicating otherwise identical Claude entries in every natural-language dispatch rule and gives manual, typed-resolver, relaunch, and recovery paths one binding owner.
 
 ## Optional secondmates
 
