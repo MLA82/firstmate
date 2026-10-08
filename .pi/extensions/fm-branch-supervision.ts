@@ -840,11 +840,11 @@ export default function (pi: ExtensionAPI) {
     };
   }
 
-  // The pin file's CURRENT state decides the model on every branch build,
+  // The CURRENT effective choice decides the model on every branch build,
   // create and reopen alike, and it overrides Pi's restore of whatever model
   // a reopened branch session recorded. With a pin, that model. With no pin,
   // main's own model is applied EXPLICITLY through followMainModel -
-  // otherwise clearing the pin would report that the branch follows main
+  // otherwise choosing follow-main would report that the branch follows main
   // while the reopened session quietly restored the model an earlier pin left
   // behind. Only when main's model is genuinely unknown, or the follow rule
   // says the isolated runtime cannot run an ordinary provider, does the build
@@ -874,11 +874,11 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  // The effort pin file's CURRENT state decides the branch's reasoning effort
+  // The CURRENT effective effort choice decides the branch's reasoning effort
   // on every branch build, create and reopen alike, on exactly the model-pin
   // contract above and for exactly the same reason: a reopened branch session
   // records the effort it last ran under, so an unpinned branch must apply
-  // main's own effort EXPLICITLY or clearing a pin would silently restore the
+  // main's own effort EXPLICITLY or choosing follow-main would silently restore the
   // level that pin left behind. Pi owns the clamp, so a level the branch's
   // model does not support becomes that model's nearest supported level
   // rather than a refusal - the branch is never refused over effort. Only

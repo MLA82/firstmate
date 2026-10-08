@@ -227,7 +227,7 @@ Stored OAuth and API-key credentials retain their native credential type because
 
 ### Model file format and default
 
-The model file holds one `<provider>/<model-id>` line followed by one newline.
+The model file holds one `<provider>/<model-id>` or `follow-main` line followed by one newline.
 Parsing splits at the first `/`, so a provider-qualified model id such as `openrouter/anthropic/claude-sonnet-4-5` survives intact.
 An absent, unreadable, or unparseable file means no local pin and uses the shared default described under [Cancellation and inheritance](#cancellation-and-inheritance), if configured.
 The literal `follow-main` is an explicit local choice that excludes that default.
@@ -246,7 +246,7 @@ A `codex-native` branch pin is refused and excluded from the picker.
 A valid pin wins over main and remains unaffected by main's model changes.
 Picking "Follow main" writes `follow-main` to the file; the command writes either choice at mode `0600` and replaces it atomically so a failed write leaves the current choice unchanged rather than claiming persistence.
 
-The file decides the branch model on every build: the new conversation opened at each main session start, and a reopen after a model or effort change within a session.
+The effective model choice decides the branch model on every build: the new conversation opened at each main session start, and a reopen after a model or effort change within a session.
 It overrides the model Pi would otherwise restore from the reopened branch session, so the choice survives both cases.
 That override is what keeps "Follow main" honest: a branch conversation that ran under an earlier pin still records that model, so the explicit `follow-main` choice applies main's model rather than letting the reopened session restore the old one.
 
@@ -264,7 +264,7 @@ Picking also releases the live branch so the next wake reopens this session's ow
 
 ### Effort file format and available levels
 
-The effort file holds one Pi thinking level followed by one newline.
+The effort file holds one Pi thinking level or `follow-main` followed by one newline.
 Model and effort pins are independent: a captain may pin either, both, or neither.
 The effort step follows the model step because the effective branch model determines which levels exist.
 The menu uses Pi's own supported-level list.
@@ -281,7 +281,7 @@ Without an effective pin, the branch follows main's current effort, applied expl
 A valid pin wins over main and remains unaffected by main's effort changes.
 
 Picking "Follow main" writes `follow-main` to the file, and the command replaces either effort choice atomically at mode `0600`, exactly as it writes a model choice.
-The effort file's current state decides the branch effort on every branch build, on the same create-and-reopen contract as the model pin and for the same reason: a reopened branch conversation records the effort it last ran under, so only an explicit override keeps "Follow main" honest.
+The effective effort choice decides the branch effort on every branch build, on the same create-and-reopen contract as the model pin and for the same reason: a reopened branch conversation records the effort it last ran under, so only an explicit override keeps "Follow main" honest.
 
 Only when main's own effort cannot be read either does an unpinned build fall back to passing no effort override at all, which is the behavior from before this file existed.
 
@@ -290,7 +290,7 @@ Only when main's own effort cannot be read either does an unpinned build fall ba
 Pi maps an unsupported pinned level to the branch model's nearest supported level.
 Effort never causes the branch to refuse a build.
 The captain's raw pick is kept so it applies again on a model that supports it, and the command reports the level the branch will actually use.
-An effort token Pi would not recognize at all is treated as no pin rather than passed to that clamp, which would otherwise collapse a typo into the model's lowest level.
+An effort token Pi would not recognize at all is ignored at its selection layer rather than passed to that clamp, which would otherwise collapse a typo into the model's lowest level.
 
 ### Cancellation and inheritance
 
@@ -301,7 +301,7 @@ The command's closing message reports both choices as they will take effect.
 The two local choice files are never inherited; each home can override either axis with its own `/supervision-model`.
 Optional gitignored `config/supervision-branch-default-model` and `config/supervision-branch-default-effort` supply a shared Pi supervision default, using the same provider/model and Pi thinking-level formats as concrete pins.
 For each axis, a concrete local pin wins, local `follow-main` excludes the default, and otherwise a valid configured default acts as the effective pin before falling back to main.
-Absent, unreadable, or invalid default files leave that axis following main; a syntactically valid but unavailable default model is refused by the same credential/model checks as a local pin, and default effort uses the same nearest-supported-level mapping without rewriting its raw value.
+An absent, unreadable, or invalid default supplies no effective pin; a syntactically valid but unavailable default model is refused by the same credential/model checks as a local pin, and default effort uses the same nearest-supported-level mapping without rewriting its raw value.
 No shared model or effort is hardcoded upstream.
 Both default files belong to the primary-authoritative inherited-material set declared by [`fm_config_inherit_items`](../bin/fm-config-inherit-lib.sh), so existing and new local and registered remote secondmate homes receive them through the ordinary guarded configuration convergence path.
 Remote code roots must support the same declared set before propagation succeeds.
