@@ -521,7 +521,7 @@ Reuse is best-effort, never guaranteed.
 ### Branch model and providers
 
 The branch can also run on a cheaper model and a shallower reasoning effort than main, both pinned with the Pi `/supervision-model` command.
-[configuration.md](configuration.md#pi-supervision-branch-model-and-effort-configsupervision-branch-model-configsupervision-branch-effort) owns those pins' operator-facing schema and unpinned behavior.
+[configuration.md](configuration.md#pi-supervision-branch-model-and-effort-configsupervision-branch-model-configsupervision-branch-effort) owns the local choices, inherited defaults, migration, and effective selection behavior.
 
 Some providers are registered by an extension only into main's runtime, such as pi-devin-auth's `devin`.
 Such a provider reaches the isolated branch runtime by copying its provider config from main's captured `ModelRegistry` into the branch `ModelRuntime`.

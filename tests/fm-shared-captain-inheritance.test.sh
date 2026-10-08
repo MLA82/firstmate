@@ -185,6 +185,38 @@ remote_quarantine_count() {
   find "$1/data" -name 'captain-shared.md.remote-quarantine-*' | wc -l | tr -d ' '
 }
 
+test_remote_receiver_branch_defaults_preserve_local_choices() {
+  local home payload item bytes hash out empty_hash
+  home="$TMP_ROOT/remote-defaults/home"
+  payload="$TMP_ROOT/remote-defaults/payload"
+  mkdir -p "$home/config" "$home/state"
+  printf 'follow-main\n' > "$home/config/supervision-branch-model"
+  printf 'high\n' > "$home/config/supervision-branch-effort"
+  for item in supervision-branch-default-model supervision-branch-default-effort; do
+    case "$item" in
+      *-model) printf 'openai-codex/gpt-6-luna\n' > "$payload" ;;
+      *-effort) printf 'low\n' > "$payload" ;;
+    esac
+    bytes=$(LC_ALL=C wc -c < "$payload" | tr -d ' ')
+    hash=$(fm_inherit_sha256 "$payload") || fail "cannot hash default"
+    out=$(PATH="$BASE_PATH" FM_HOME="$home" bash "$ROOT/bin/fm-remote-inherit.sh" \
+      put "config/$item" "$bytes" "$hash" 1 < "$payload" 2>&1) || fail "remote default refused: $out"
+    cmp -s "$payload" "$home/config/$item" || fail "remote default not published"
+    : > "$payload"
+    empty_hash=$(fm_inherit_sha256 "$payload")
+    out=$(PATH="$BASE_PATH" FM_HOME="$home" bash "$ROOT/bin/fm-remote-inherit.sh" \
+      absent "config/$item" 0 "$empty_hash" 2 2>&1) || fail "remote default removal refused: $out"
+    [ ! -e "$home/config/$item" ] || fail "remote absence not mirrored"
+  done
+  [ "$(cat "$home/config/supervision-branch-model")" = follow-main ] || fail "remote local model changed"
+  [ "$(cat "$home/config/supervision-branch-effort")" = high ] || fail "remote local effort changed"
+  out=$(PATH="$BASE_PATH" FM_HOME="$home" bash "$ROOT/bin/fm-remote-inherit.sh" \
+    put config/supervision-branch-model 0 "$empty_hash" 3 < "$payload" 2>&1) \
+    && fail "remote route accepted a home-local choice"
+  assert_contains "$out" 'path is not inherited material' "local choice refusal missing"
+  pass "remote inherited defaults publish and clear without touching local branch choices"
+}
+
 test_remote_receiver_accepts_source_only_edit_without_quarantine() {
   local home source out qpath
   home="$TMP_ROOT/remote-receiver/home"
@@ -597,6 +629,7 @@ test_first_copy_readonly_and_local_files_preserved
 test_true_divergence_after_inherit_still_quarantines
 test_interrupted_publication_matching_source_does_not_quarantine
 test_remote_receiver_accepts_source_only_edit_without_quarantine
+test_remote_receiver_branch_defaults_preserve_local_choices
 test_drift_quarantine_collision_and_repeated_convergence
 test_missing_source_mirrors_absence_without_losing_local_bytes
 test_unsafe_artifacts_and_failure_restore_readonly_mode

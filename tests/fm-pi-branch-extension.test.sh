@@ -3486,6 +3486,96 @@ EOF
   pass "the current pin state binds every branch build, and clearing it returns the branch to main's model"
 }
 
+test_shared_branch_defaults_and_local_choices() {
+  local repo home out status
+  repo="$TMP_ROOT/shared-default-root"
+  home="$TMP_ROOT/shared-default-home"
+  mkdir -p "$home/state" "$home/config"
+  install_pi_branch_extension_fixture "$repo"
+  PLUGIN="$repo/.pi/extensions/fm-branch-supervision.ts" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    DRIVER_PRELUDE="$DRIVER_PRELUDE" node --input-type=module > "$TMP_ROOT/node-output" 2>&1 <<'EOF'
+const prelude = process.env.DRIVER_PRELUDE;
+await eval(`(async () => { ${prelude}; globalThis.__t = { fire, dispatch, settle, makeCtx, commands, registryModels, uiSelections, setMainThinkingLevel, mainModelWrites, home }; })()`);
+const { fire, dispatch, settle, makeCtx, commands, registryModels, uiSelections, setMainThinkingLevel, mainModelWrites, home } = globalThis.__t;
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+registryModels.push(
+  { provider: "anthropic", id: "main-model", reasoning: true },
+  { provider: "openai-codex", id: "gpt-6-luna", reasoning: true },
+  { provider: "openai", id: "local-model", reasoning: true },
+);
+const path = (name) => `${home}/config/supervision-branch-${name}`;
+const write = (name, value) => writeFileSync(path(name), `${value}\n`);
+const context = makeCtx();
+context.setModel = () => { throw new Error("branch defaults must not set main's model"); };
+context.settingsManager = { setDefaultModelAndProvider: context.setModel };
+let count = 0;
+async function build(label, id, level) {
+  if (count) await fire("session_shutdown", {});
+  await fire("session_start", {}, context);
+  dispatch(`signal: ${label}`);
+  count += 1;
+  await settle(() => (globalThis.__fmSessions ?? []).length === count, label);
+  const options = globalThis.__fmSessions.at(-1).options;
+  if (options.model?.id !== id || options.thinkingLevel !== level) {
+    throw new Error(`${label}: expected ${id}/${level}, got ${JSON.stringify(options)}`);
+  }
+  if (context.model.id !== "main-model" || mainModelWrites.length) throw new Error("main model changed");
+  return globalThis.__fmSessions.at(-1);
+}
+// Legacy absence still follows main until a configured shared default exists.
+await build("legacy absence", "main-model", "medium");
+write("default-model", "openai-codex/gpt-6-luna");
+write("default-effort", "low");
+const inherited = await build("automatic defaults at Pi startup", "gpt-6-luna", "low");
+await fire("model_select", { model: { provider: "anthropic", id: "other-main-model" } });
+setMainThinkingLevel("high");
+await fire("thinking_level_select", { level: "high" });
+if (inherited.disposed) throw new Error("main changes released a default-pinned branch");
+await build("defaults survive restart and main effort change", "gpt-6-luna", "low");
+write("model", "openai/local-model");
+await build("model override independent of effort", "local-model", "low");
+write("effort", "minimal");
+await build("local pins win", "local-model", "minimal");
+if (readFileSync(path("model"), "utf8") !== "openai/local-model\n") throw new Error("model pin mutated");
+if (readFileSync(path("effort"), "utf8") !== "minimal\n") throw new Error("effort pin mutated");
+// The actual picker writes explicit follow-main choices on both axes.
+uiSelections.push("Follow main (anthropic/main-model)", "Follow main (high)");
+await commands.get("supervision-model").handler("", context);
+for (const name of ["model", "effort"]) {
+  if (readFileSync(path(name), "utf8") !== "follow-main\n") throw new Error(`missing ${name} sentinel`);
+}
+await build("explicit follow-main excludes defaults", "main-model", "high");
+write("default-model", "openai/local-model");
+write("default-effort", "minimal");
+await build("follow-main survives changed defaults", "main-model", "high");
+rmSync(path("model"));
+await build("removing local choice adopts model default only", "local-model", "high");
+rmSync(path("effort"));
+await build("removing both choices adopts defaults", "local-model", "minimal");
+write("default-effort", "max");
+await build("default effort uses existing nearest-level clamp", "local-model", "high");
+if (readFileSync(path("default-effort"), "utf8") !== "max\n") throw new Error("clamp rewrote raw default");
+write("default-effort", "typo");
+await build("invalid default effort follows main", "local-model", "high");
+write("default-model", "typo");
+await build("invalid default model follows main", "main-model", "high");
+// A configured but unavailable default is an effective pin, never a silent fallback.
+write("default-model", "openai/missing-model");
+await fire("session_shutdown", {});
+await fire("session_start", {}, context);
+const offer = dispatch("signal: unavailable shared default");
+let failure;
+try { await offer.settlement; } catch (error) { failure = error; }
+if (!String(failure).includes("supervision model pin")) throw new Error(`default refusal missing: ${failure}`);
+if (globalThis.__fmSessions.length !== count) throw new Error("unavailable default created a branch");
+process.exit(0);
+EOF
+  status=$?
+  out=$(cat "$TMP_ROOT/node-output")
+  expect_code 0 "$status" "shared defaults and explicit local choices must affect only the branch: $out"
+  pass "shared defaults apply automatically, local pins and explicit follow-main win, main stays unchanged"
+}
+
 test_unpinned_branch_follows_main_model_changes_live() {
   local repo home out status
   repo="$TMP_ROOT/model-live-root"
@@ -3612,12 +3702,12 @@ if (repinned.options.model.authKind !== "oauth") {
 }
 if (!repinned.options.sessionManager.opened) throw new Error("the pick must keep the branch conversation, not start a new one");
 
-// Following main again clears the file and actually returns the branch to
-// main's model, rather than letting the reopened session restore the pin.
+// Following main again persists that choice and actually returns the branch
+// to main's model, rather than letting the reopened session restore the pin.
 const clearNoticeCount = notices.length;
 uiSelections.push("Follow main (anthropic/main-model)");
 await command.handler("", makeCtx());
-if (existsSync(pinFile)) throw new Error("following main must remove the pin file");
+if (readFileSync(pinFile, "utf8") !== "follow-main\n") throw new Error("following main must persist an explicit local choice");
 const clearNotices = notices.slice(clearNoticeCount);
 if (clearNotices.length !== 1 || clearNotices[0].type !== "info" || !clearNotices[0].message.includes("anthropic/main-model")) {
   throw new Error(`following main did not report the model actually applied: ${JSON.stringify(clearNotices)}`);
@@ -3671,14 +3761,14 @@ if (newNotices.length !== 1 || newNotices[0].type !== "error") {
   throw new Error(`an unapplied model emitted a success notification: ${JSON.stringify(newNotices)}`);
 }
 
-// If the picker loads but resolving main after Follow main fails, the pin is
-// cleared and the captain receives an honest warning rather than a rejection
-// or a false success notice.
+// If the picker loads but resolving main after Follow main fails, the choice
+// is persisted and the captain receives an honest warning rather than a
+// rejection or a false success notice.
 const clearFailureNoticeCount = notices.length;
 globalThis.__fmModelRuntimeErrors = [null, "synthetic post-clear runtime failure"];
 uiSelections.push("Follow main (anthropic/main-model)");
 await command.handler("", makeCtx());
-if (existsSync(pinFile)) throw new Error("following main did not clear the pin before its resolution warning");
+if (readFileSync(pinFile, "utf8") !== "follow-main\n") throw new Error("following main did not persist its choice before the resolution warning");
 const clearFailureNotices = notices.slice(clearFailureNoticeCount);
 if (
   clearFailureNotices.length !== 1 ||
@@ -4133,7 +4223,7 @@ if (!narrowed.title.includes("now: xhigh")) {
   throw new Error(`the effort picker must show the standing pin: ${narrowed.title}`);
 }
 if (readFileSync(effortPin, "utf8") !== "high\n") throw new Error("the second effort pick was not persisted");
-if (existsSync(modelPin)) throw new Error("following main did not clear the model pin");
+if (readFileSync(modelPin, "utf8") !== "follow-main\n") throw new Error("following main did not persist the model choice");
 
 // Cancelling the effort step leaves the standing effort choice alone while
 // the model pick made in the same invocation still applies, and the captain
@@ -4148,11 +4238,11 @@ if (cancelNotices.length !== 1 || cancelNotices[0].type !== "info" || !cancelNot
   throw new Error(`a cancelled effort step must still report the standing effort: ${JSON.stringify(cancelNotices)}`);
 }
 
-// Following main for effort clears the pin and reports main's own level.
+// Following main for effort persists that choice and reports main's own level.
 const followNoticeCount = notices.length;
 uiSelections.push("openai/deep-1", "Follow main (medium)");
 await command.handler("", makeCtx());
-if (existsSync(effortPin)) throw new Error("following main must remove the effort pin file");
+if (readFileSync(effortPin, "utf8") !== "follow-main\n") throw new Error("following main must persist the effort choice");
 const followNotices = notices.slice(followNoticeCount);
 if (followNotices.length !== 1 || !followNotices[0].message.includes("Effort follows main (medium)")) {
   throw new Error(`following main for effort was not reported honestly: ${JSON.stringify(followNotices)}`);
@@ -5980,6 +6070,7 @@ test_branch_mirror_filters_order_and_cursor
 test_branch_mirror_reanchors_for_the_new_session_branch_conversation
 test_branch_session_is_new_at_every_main_session_start
 test_branch_model_pin_applies_and_absent_pin_keeps_the_default
+test_shared_branch_defaults_and_local_choices
 test_unpinned_branch_follows_main_model_changes_live
 test_supervision_model_command_persists_and_rebinds_the_live_branch
 test_supervision_model_picker_is_bounded_searchable_and_branch_only

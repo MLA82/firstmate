@@ -218,10 +218,9 @@ if (!existsSync(`${home}/state/branch-session`)) {
   throw new Error("branch session store directory was not created");
 }
 
-// A model pin the branch's REAL runtime cannot resolve must refuse the build
-// and reject the offer back to watcher-owned main delivery rather than
-// silently running the branch on whatever model main would have used.
-writeFileSync(`${home}/config/supervision-branch-model`, "openai/no-such-live-model\n");
+// An inherited default the branch's REAL runtime cannot resolve must refuse
+// exactly like a local pin, never silently falling back to main's model.
+writeFileSync(`${home}/config/supervision-branch-default-model`, "openai/no-such-live-model\n");
 for (const handler of piHandlers.get("session_shutdown") ?? []) {
   await handler({ type: "session_shutdown", reason: "new" }, sessionCtx);
 }
@@ -268,6 +267,8 @@ pass "real Pi SDK $PI_VERSION accepts the branch session construction and preser
 errorhome="$TMP_ROOT/error-home"
 erroragentdir="$TMP_ROOT/error-agent-dir"
 mkdir -p "$errorhome/state" "$errorhome/config" "$erroragentdir"
+printf 'fm-live-error/fm-live-default-model\n' > "$errorhome/config/supervision-branch-default-model"
+printf 'low\n' > "$errorhome/config/supervision-branch-default-effort"
 cat > "$erroragentdir/models.json" <<'JSON'
 {
   "providers": {
@@ -276,7 +277,8 @@ cat > "$erroragentdir/models.json" <<'JSON'
       "api": "openai-completions",
       "apiKey": "fm-live-placeholder",
       "models": [
-        { "id": "fm-live-error-model", "name": "fm live error", "contextWindow": 8192, "maxTokens": 512 }
+        { "id": "fm-live-error-model", "name": "fm live error", "contextWindow": 8192, "maxTokens": 512 },
+        { "id": "fm-live-default-model", "name": "fm live default", "reasoning": true, "contextWindow": 8192, "maxTokens": 512 }
       ]
     }
   }
@@ -409,6 +411,12 @@ if (!queue.includes("\tsignal\tlive-error-probe.status\t")) {
 const pointer = readFileSync(`${home}/state/.branch-session`, "utf8").trim();
 const { SessionManager } = await import(pathToFileURL(`${process.env.PI_PACKAGE_DIR}/dist/index.js`).href);
 const persistedContext = SessionManager.open(pointer, `${home}/state/branch-session`).buildSessionContext();
+if (persistedContext.model?.modelId !== "fm-live-default-model" || persistedContext.thinkingLevel !== "low") {
+  throw new Error(`real Pi startup ignored branch defaults: ${JSON.stringify(persistedContext)}`);
+}
+if (sessionCtx.model.id !== "fm-live-error-model" || pi.getThinkingLevel() !== "off") {
+  throw new Error("real-SDK branch defaults changed the main conversation model or effort");
+}
 const persistedError = persistedContext.messages
   .filter((message) => message.role === "assistant")
   .at(-1);
@@ -429,7 +437,7 @@ out=$(cat "$TMP_ROOT/error-output")
 if [ "$status" -ne 0 ] || [ "$out" != "ERROR_FALLBACK_OK" ]; then
   fail "real-SDK Pi settled-provider-error guard failed against pi-coding-agent $PI_VERSION: $out"
 fi
-pass "real Pi SDK $PI_VERSION rejects a post-construction 429 to watcher-owned main delivery without losing its durable row"
+pass "real Pi SDK $PI_VERSION applies branch defaults without changing main and returns a settled 429 to main without losing its row"
 
 # Third probe: the vendor contract the supervision-branch model pin rests on.
 # An explicit model must beat the model a reopened session recorded, or a pin

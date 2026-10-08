@@ -2169,6 +2169,23 @@ FM_HARNESS_LIVENESS_DRIFT=1 bin/fm-test-run.sh tests/fm-harness-liveness-drift-l
 The supervision-branch extension (`.pi/extensions/fm-branch-supervision.ts`, [docs/pi-supervision-branch.md](../pi-supervision-branch.md)) builds its second session through the Pi SDK surface: `createAgentSession` (including its `model`, `modelRuntime`, and `thinkingLevel` options), `DefaultResourceLoader` with `extensionFactories`, `SessionManager`, `createBashToolDefinition` with a `spawnHook`, `sendCustomMessage` for routine notes, `appendEntry` and `registerEntryRenderer` for captain outcomes, the `before_provider_request` hook, the command context's model registry for picker candidates, a fresh `ModelRuntime` for isolated-branch resolution, and Pi's own `getSupportedThinkingLevels`/`clampThinkingLevel` plus its `getThinkingLevel` and `thinking_level_select` extension surface for effort.
 In TUI mode, its `/supervision-model` model list is drawn with Pi's own `SelectList`, `Input`, `fuzzyFilter`, and `DynamicBorder` through the extension context's `ui.custom` surface, which is what bounds and searches a long catalog.
 
+Shared-default startup selection was verified on 2026-10-08 against installed Pi 1.1.0 and Node v26.6.0, using isolated synthetic model configuration and an intercepted provider response without reading user credentials or contacting a provider:
+
+```sh
+FM_PI_BRANCH_LIVE_E2E=1 bash bin/fm-test-run.sh tests/fm-pi-branch-live-e2e.test.sh
+npm_config_cache="$PWD/data/npm-cache" npm exec --yes --package=typescript@5.9.3 -- bash bin/fm-test-run.sh tests/fm-pi-primary-types.test.sh
+```
+
+```text
+ok - real Pi SDK 1.1.0 applies branch defaults without changing main and returns a settled 429 to main without losing its row
+ok - tracked Pi extensions pass strict no-emit typecheck against Pi 1.1.0
+```
+
+The real branch extension resolves a configured shared model and `low` effort at startup through Pi's `ModelRuntime`, and the reopened `SessionManager` confirms both effective values while main retains its different model and effort.
+An unavailable shared model also rejects its accepted offer to the ordinary main fallback.
+The local and remote configuration propagation regressions remain in `tests/fm-secondmate-harness.test.sh` and `tests/fm-shared-captain-inheritance.test.sh`; the effective-default, override, explicit-follow, clamp and unchanged-main cases remain in `tests/fm-pi-branch-extension.test.sh`.
+Other primary harnesses do not load this extension, inherited defaults do not alter their supervision-host engine selection, and configuration propagation is independent of session runtime backend.
+
 Processing-retry visibility was verified on 2026-09-27 against Pi 0.87.1 with a local intercepted provider stream, without credentials or an external provider request:
 
 ```sh

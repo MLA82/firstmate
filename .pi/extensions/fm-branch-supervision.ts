@@ -65,9 +65,10 @@
 // Pi's own supported-thinking-level list and persists each choice as one line
 // under this home's config/. docs/configuration.md owns those files'
 // operator-facing schema. The two pins are independent: either, both, or
-// neither may be set. An absent pin makes the branch follow main's own
-// current model or effort, applied explicitly on every build so a reopened
-// branch cannot restore what an earlier pin left in its session.
+// neither may be set. An absent local pin uses the shared default if set;
+// otherwise it follows main, as does an explicit local follow-main choice.
+// The effective choice is applied on every build so a reopened branch cannot
+// restore what an earlier pin left in its session.
 //
 // Threat model (captain-decided): the branch's actor identity is
 // CONFUSED-AGENT-GRADE - deterministic spawnHook env injection plus a
@@ -280,38 +281,37 @@ const piOwnsTheEffortVocabulary: [DeclaredBranchEffort] extends [BranchEffort]
   : never = true;
 void piOwnsTheEffortVocabulary;
 
-// The supervision-branch model pin, owned operator-side by
-// docs/configuration.md: one "<provider>/<model-id>" line under this home's
-// config/. An absent, unreadable, or unparseable file means no pin, and the
-// branch then follows main's own model. Only the FIRST "/" separates the two
-// halves, so a provider-qualified model id such as
-// openrouter/anthropic/claude survives.
-function readModelPin(): { provider: string; modelId: string } | null {
-  let stored: string;
+// docs/configuration.md owns the local choices and inherited defaults.
+// A local follow-main sentinel excludes the shared default on that axis.
+function readSelectionLine(path: string): string {
   try {
-    stored = readFileSync(modelPinFile, "utf8");
+    return (readFileSync(path, "utf8").split("\n")[0] ?? "").trim();
   } catch {
-    return null;
+    return "";
   }
-  const line = (stored.split("\n")[0] ?? "").trim();
+}
+
+function parseModelSelection(line: string): { provider: string; modelId: string } | null {
+  // Only the FIRST slash separates provider from a provider-qualified id.
   const separator = line.indexOf("/");
   if (separator <= 0 || separator >= line.length - 1) return null;
   return { provider: line.slice(0, separator), modelId: line.slice(separator + 1) };
 }
 
-// The supervision-branch effort pin, owned operator-side by the same
-// docs/configuration.md section: one Pi thinking-level line under this home's
-// config/, independent of the model pin. An absent, unreadable, or
-// unrecognized file means no pin, and the branch then follows main's own
-// effort.
+// Return the effective pin, whether local or inherited, so all existing
+// build, picker, live-follow, credential and refusal paths share resolution.
+function readModelPin(): { provider: string; modelId: string } | null {
+  const local = readSelectionLine(modelPinFile);
+  if (local === "follow-main") return null;
+  return parseModelSelection(local) ?? parseModelSelection(readSelectionLine(join(config, "supervision-branch-default-model")));
+}
+
 function readEffortPin(): BranchEffort | null {
-  let stored: string;
-  try {
-    stored = readFileSync(effortPinFile, "utf8");
-  } catch {
-    return null;
-  }
-  const line = (stored.split("\n")[0] ?? "").trim();
+  const local = readSelectionLine(effortPinFile);
+  if (local === "follow-main") return null;
+  const line = (BRANCH_EFFORT_LEVELS as readonly string[]).includes(local)
+    ? local
+    : readSelectionLine(join(config, "supervision-branch-default-effort"));
   return (BRANCH_EFFORT_LEVELS as readonly string[]).includes(line) ? (line as BranchEffort) : null;
 }
 
@@ -326,10 +326,6 @@ function writePinFile(pinFile: string, selection: string): void {
   } finally {
     rmSync(temporaryPath, { force: true });
   }
-}
-
-function clearPinFile(pinFile: string): void {
-  rmSync(pinFile, { force: true });
 }
 
 function modelLabel(model: { provider: string; id: string }): string {
@@ -1934,7 +1930,7 @@ ${context.command}
       let branchModel: BranchModel | undefined;
       try {
         if (picked === FOLLOW_MAIN_VALUE) {
-          clearPinFile(modelPinFile);
+          writePinFile(modelPinFile, "follow-main");
         } else {
           const separator = picked.indexOf("/");
           if (separator <= 0 || separator >= picked.length - 1) throw new Error(`invalid model selection: ${picked}`);
@@ -1956,7 +1952,7 @@ ${context.command}
       if (picked !== FOLLOW_MAIN_VALUE) {
         modelReport = { message: `Supervision branch model: ${picked}.`, warning: false };
       } else {
-        // Clearing the pin only follows main if main's model can actually be
+        // The follow-main choice only follows main if main's model can actually be
         // applied to the branch; the same followMainModel rule the next build
         // runs says what will really happen rather than reporting a state
         // that did not take effect.
@@ -2097,7 +2093,7 @@ ${context.command}
     }
     try {
       if (picked === followMainEffort) {
-        clearPinFile(effortPinFile);
+        writePinFile(effortPinFile, "follow-main");
       } else if ((BRANCH_EFFORT_LEVELS as readonly string[]).includes(picked)) {
         writePinFile(effortPinFile, picked);
       } else {

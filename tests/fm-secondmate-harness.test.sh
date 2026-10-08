@@ -430,6 +430,39 @@ test_propagate_lib() {
     || fail "a secondmate's own supervision-host engine line was changed by convergence"
   rm -f "$src/supervision-host"
 
+  # Fleet Pi branch defaults reach both fresh and existing homes, without
+  # copying local choices, chat defaults, Claude host settings or credentials.
+  printf 'openai-codex/gpt-6-luna\n' > "$src/supervision-branch-default-model"
+  printf 'low\n' > "$src/supervision-branch-default-effort"
+  printf 'openai/primary-pin\n' > "$src/supervision-branch-model"
+  printf 'high\n' > "$src/supervision-branch-effort"
+  printf 'secret\n' > "$src/auth.json"
+  printf 'follow-main\n' > "$dest/supervision-branch-model"
+  printf 'max\n' > "$dest/supervision-branch-effort"
+  mkdir -p "$d/fresh/state"
+  propagate_inheritable_config "$src" "$d/fresh/config"
+  propagate_inheritable_config "$src" "$dest"
+  for home in "$d/fresh" "$d/home1"; do
+    [ "$(cat "$home/config/supervision-branch-default-model")" = 'openai-codex/gpt-6-luna' ] \
+      || fail "shared model default not propagated"
+    [ "$(cat "$home/config/supervision-branch-default-effort")" = low ] \
+      || fail "shared effort default not propagated"
+    [ ! -e "$home/config/auth.json" ] || fail "credentials propagated"
+  done
+  [ ! -e "$d/fresh/config/supervision-branch-model" ] || fail "primary local model pin propagated"
+  [ ! -e "$d/fresh/config/supervision-branch-effort" ] || fail "primary local effort pin propagated"
+  [ "$(cat "$dest/supervision-branch-model")" = follow-main ] || fail "existing Follow main overwritten"
+  [ "$(cat "$dest/supervision-branch-effort")" = max ] || fail "existing effort pin overwritten"
+  printf 'openai/another-default\n' > "$src/supervision-branch-default-model"
+  propagate_inheritable_config "$src" "$dest"
+  [ "$(cat "$dest/supervision-branch-default-model")" = 'openai/another-default' ] || fail "changed default not converged"
+  rm "$src/supervision-branch-default-model" "$src/supervision-branch-default-effort"
+  propagate_inheritable_config "$src" "$dest"
+  [ ! -e "$dest/supervision-branch-default-model" ] || fail "model default absence not mirrored"
+  [ ! -e "$dest/supervision-branch-default-effort" ] || fail "effort default absence not mirrored"
+  [ "$(cat "$dest/supervision-branch-model")" = follow-main ] || fail "default removal changed local model"
+  [ "$(cat "$dest/supervision-branch-effort")" = max ] || fail "default removal changed local effort"
+
   # 6. nothing to propagate -> destination dir is never created (a true no-op)
   rm -rf "$d/src3" "$d/dest3"
   mkdir -p "$d/src3"
