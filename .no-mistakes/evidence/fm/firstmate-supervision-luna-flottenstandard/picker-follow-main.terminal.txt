@@ -1,0 +1,38 @@
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf
+ and restart tmux.
+
+ ⛵ probe: Disposable lab supervision completed.
+
+ Supervision branch follows main's model (lab-main/main-model). Effort follows main (high).
+
+ ⛵ probe: Disposable lab supervision completed.
+
+ LAB
+ {"accepted":true,"error":"","main":{"provider":"lab-main","id":"main-model","effort":"high"},"queue":"1791458520\t1791
+ 458520586\tsignal\tprobe.status\tsignal: disposable lab probe\n"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/c5f70a6c06fa/01M4DJYGBZ6CN87EJQ641S8MD4 (detached)
+0.1%/33k                                                                                    (lab-main) main-model • high

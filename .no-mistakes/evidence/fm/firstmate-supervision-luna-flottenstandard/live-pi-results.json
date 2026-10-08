@@ -1,0 +1,459 @@
+[
+  {
+    "scenario": "primary-default",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "low"
+    },
+    "persistedRecorded": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "low"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "picker-follow-main",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "persistedRecorded": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "low"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "follow-main-after-restart-default-change",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "effort-follows-model-defaults",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "high"
+    },
+    "persistedRecorded": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "high"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "model-follows-effort-defaults",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "low"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "low"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "concrete-local-override",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "medium"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "medium"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "medium",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "medium",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "unavailable-default-refused",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": null,
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "medium"
+    },
+    "accepted": true,
+    "error": "Error: supervision model pin openai-codex/no-such-model is unavailable to the isolated branch runtime (config/supervision-branch-model)",
+    "requests": [],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "malformed-defaults-follow-main",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "default-effort-clamped",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/plain",
+      "effort": "off"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/plain",
+      "effort": "off"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "plain",
+        "reasoning_effort": null,
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "plain",
+        "reasoning_effort": null,
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "absent-defaults-follow-main",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "high"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "high",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "secondmate-inherited-startup",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "low"
+    },
+    "persistedRecorded": {
+      "model": "openai-codex/gpt-6-luna",
+      "effort": "low"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "gpt-6-luna",
+        "reasoning_effort": "low",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "secondmate-local-choice-preserved",
+    "main": {
+      "provider": "lab-main",
+      "id": "main-model",
+      "effort": "high"
+    },
+    "branch": {
+      "model": "lab-main/main-model",
+      "effort": "medium"
+    },
+    "persistedRecorded": {
+      "model": "lab-main/main-model",
+      "effort": "medium"
+    },
+    "accepted": true,
+    "error": "",
+    "requests": [
+      {
+        "model": "main-model",
+        "reasoning_effort": "medium",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      },
+      {
+        "model": "main-model",
+        "reasoning_effort": "medium",
+        "tools": [
+          "read",
+          "bash",
+          "fm_branch_report"
+        ]
+      }
+    ],
+    "wakeRetained": true
+  },
+  {
+    "scenario": "inheritance-update-removal-boundary",
+    "local": "shared defaults copied, updated and removed; local follow-main/medium preserved",
+    "remote": [
+      "pushed: config/supervision-branch-default-model\n",
+      "removed: config/supervision-branch-default-model\n",
+      "pushed: config/supervision-branch-default-effort\n",
+      "removed: config/supervision-branch-default-effort\n"
+    ],
+    "localPinRefusal": "error: path is not inherited material: config/supervision-branch-model\n"
+  }
+]
