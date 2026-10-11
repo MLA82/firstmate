@@ -3,7 +3,7 @@
 # Usage: . bin/fm-ff-lib.sh   (after FM_ROOT and FM_HOME are set)
 #
 # This is the one implementation of "advance a firstmate checkout to a base by a
-# clean fast-forward, never forcing, merging, or stashing" used by every sync
+# guarded fast-forward, never forcing, merging, or stashing" used by every sync
 # path:
 #   - /updatefirstmate (bin/fm-update.sh) pulls from origin: base_mode "origin".
 #   - the local-HEAD secondmate sync (bin/fm-spawn.sh on launch, bin/fm-bootstrap.sh
@@ -25,9 +25,9 @@
 # (data/, state/, config/, projects/, .no-mistakes/), so it cannot disturb a
 # secondmate's backlog, projects, or in-flight work.
 # The seeded .fm-secondmate-home identity marker is gitignored too; like any
-# untracked-only path it never blocks the fast-forward, which lets pre-ignore
-# linked-worktree homes upgrade.
-# A clean secondmate divergence is reconciled only when a three-way tree proof
+# noncolliding untracked-only path it passes the dirty guard, which lets
+# pre-ignore linked-worktree homes upgrade.
+# A secondmate divergence without tracked-file changes is reconciled only when a three-way tree proof
 # shows that its complete local result is already present in the target, as
 # happens after an upstream squash merge. Every other divergence stays put and
 # records an inspectable state/.secondmate-update-reconcile/<id>.pending marker
@@ -380,8 +380,8 @@ live_secondmate_meta_records() {
 #                  it is skipped rather than fetched.
 # Guards are identical in both modes: ff-only (never force/merge/stash); skip a
 # target with tracked-file changes, or a diverged or wrong-branch target, and
-# leave its work untouched. Untracked-only paths never block: the ff-only merge
-# itself refuses to overwrite an untracked file. An optional secondmate id
+# leave its work untouched. Untracked-only paths pass the dirty guard, while the
+# ff-only merge itself refuses to overwrite a colliding untracked file. An optional secondmate id
 # enables the content-equivalent divergence proof and durable marker described
 # in this file's header.
 FF_STATUS=""

@@ -13,9 +13,9 @@
 # commits behind ... - needs attention" warning rather than a quiet drift. Nothing
 # is ever forced, stashed, or discarded.
 # Untracked-only working trees (e.g. an ignored tool cache that was never added
-# to .gitignore) never block a fast-forward: git itself refuses a checkout or
-# ff-only merge that would overwrite an untracked file, so that self-protection
-# is relied on instead of treating untracked-only as dirty. A re-attach checkout
+# to .gitignore) pass the dirty guard: git itself refuses a checkout or ff-only
+# merge that would overwrite an untracked file, so that self-protection is
+# relied on instead of treating untracked-only as dirty. A re-attach checkout
 # or fast-forward git refuses is still reported STUCK, carrying git's reason.
 # Still skips (benignly) local-only/no-origin projects, missing remotes/branches,
 # and fetch failures. A project whose registry entry bin/fm-project-mode.sh
@@ -371,8 +371,8 @@ sync_project() {
   fi
 
   cur=$(git -C "$PROJ" symbolic-ref --short HEAD 2>/dev/null || echo "")
-  # Only tracked-file changes count as dirty; untracked-only paths never block
-  # (see the header comment).
+  # Only tracked-file changes count as dirty; untracked-only paths pass this
+  # guard (see the header comment).
   dirty=no
   [ -z "$(git -C "$PROJ" status --porcelain --untracked-files=no 2>/dev/null | head -1)" ] || dirty=yes
   recovered=no
