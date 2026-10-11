@@ -120,7 +120,12 @@ receiver_wake_message() {  # <item-key>...
 # Extracts every item key from a "- [ ] <key> - <title>" backlog/outbox line,
 # in file order, one per line - the same line shape outbox_item_count counts.
 receiver_wake_item_keys_from_file() {  # <path>
-  grep -E '^- \[[ x]\] ' "$1" 2>/dev/null | sed -E 's/^- \[[ x]\] ([^ ]+) .*/\1/'
+  awk '
+    /^- \[[ x]\] / {
+      rest=$0; sub(/^- \[[ x]\] +/, "", rest); id=rest; sub(/[ \t].*/, "", id)
+      if (id != "" && !seen[id]++) print id
+    }
+  ' "$1"
 }
 
 receiver_wake_message_path() {  # <secondmate-id>
@@ -801,10 +806,7 @@ remote_deliver_outbox() { # <secondmate-id> <outbox-path>
     wake_state=dropped
     wake_rc=1
   elif receiver_wake_pending_valid "$id"; then
-    receiver_wake_message_add_keys "$id" ${wake_keys[@]+"${wake_keys[@]}"} || {
-      wake_state=dropped
-      wake_rc=1
-    }
+    receiver_wake_message_add_keys "$id" ${wake_keys[@]+"${wake_keys[@]}"} || true
   elif ! receiver_wake_confirmed_valid "$id"; then
     receiver_wake_mark_pending "$id" "$(receiver_wake_message ${wake_keys[@]+"${wake_keys[@]}"})" || {
       wake_state=dropped

@@ -240,7 +240,7 @@ warn_inheritable_config_error() {
 # Prints nothing and returns 0 when the header carries every required phrase.
 # Otherwise prints the first required phrase it did not find on stdout and
 # returns 1, so a caller can name the concrete gap instead of a generic
-# rejection. The accept set itself is unchanged.
+# rejection. Whitespace is normalized so required phrases may span lines.
 shared_captain_header_valid() {
   local src=$1 head
   head=$(sed -n '1,12p' "$src" 2>/dev/null) || return 1
