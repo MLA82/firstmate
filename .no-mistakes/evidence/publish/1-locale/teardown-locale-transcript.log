@@ -1,0 +1,15 @@
+ok - transient index.lock is recognized and retried regardless of the operator's shell locale
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fatal: Unable to create '/tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/project/.git/worktrees/wt/index.lock': File exists.
+teardown: worktree return failed with transient git lock (/tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/project/.git/worktrees/wt/index.lock); waiting 0s and retrying (1/2)
+teardown: worktree return succeeded on retry; lock cleared on its own
+/tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/project: already current
+teardown task-x1 complete (window firstmate:fm-task-x1, worktree /tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/wt)
+Backlog: task-x1 just finished (this home keeps no markdown backlog at /tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/data/backlog.md). Update /tmp/fm-teardown-tests.rJLcSm/transient-index-lock-locale/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+2

@@ -1,0 +1,1 @@
+ok - transient index.lock is recognized and retried regardless of the operator's shell locale

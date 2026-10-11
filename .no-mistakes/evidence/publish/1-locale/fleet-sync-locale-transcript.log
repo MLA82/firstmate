@@ -1,0 +1,6 @@
+ok - a transient packed-refs.lock that self-clears is retried without a force-remove
+locktrans: fetch blocked by packed-refs lock (/tmp/fm-fleet-sync-tests.0pk8e5/home-1/projects/locktrans/.git/packed-refs.lock); waiting 0s and retrying (1/3) (owning process may be exiting)
+locktrans: fetch succeeded on retry; packed-refs lock cleared on its own
+locktrans: recovered: packed-refs lock cleared on its own during retry
+locktrans: pruned feature
+locktrans: synced f2d2b87..885968d
