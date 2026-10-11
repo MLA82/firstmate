@@ -1,0 +1,7 @@
+COMMAND: FM_HOME=<isolated> bin/fm-fleet-sync.sh
+collision: STUCK: on branch main, 1 commits behind origin/main - needs attention (fast-forward failed: error: The following untracked working tree files would be overwritten by merge:)
+safe-cache: synced 2ba3a31..4b8e196
+
+OBSERVED STATE
+safe-cache head_equals_origin=yes cache_content=local cache survives
+collision head_equals_origin=no local_content=local untracked survives

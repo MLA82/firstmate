@@ -1,0 +1,5 @@
+COMMAND: ff_target <isolated-home> secondmate-sm origin
+secondmate sm: skipped: redundant divergence could not be reconciled with reset --keep: error: Untracked working tree file 'new.txt' would be overwritten by merge.
+FF_STATUS=skipped
+head_unchanged=yes
+local_content=local untracked survives
