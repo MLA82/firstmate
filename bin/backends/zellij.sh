@@ -268,18 +268,22 @@ fm_backend_zellij_native_windows() {
 # fixed default "firstmate" or an operator-supplied FM_ZELLIJ_SESSION
 # (fm_backend_zellij_session above), never arbitrary task-controlled content.
 fm_backend_zellij_server_ensure() {  # <session>
-  local session=$1 i
+  local session=$1 i native_windows=0
   fm_backend_zellij_session_exists "$session" && return 0
   if fm_backend_zellij_native_windows; then
+    native_windows=1
     case "$session" in
       ''|*[!A-Za-z0-9._-]*)
         echo "error: refusing zellij session name '$session' (must match [A-Za-z0-9._-]+)" >&2
         return 1
         ;;
     esac
-    powershell.exe -NoProfile -NonInteractive -Command \
+    if ! powershell.exe -NoProfile -NonInteractive -Command \
       "Start-Process -FilePath 'zellij.exe' -ArgumentList 'attach','-b','$session' -WindowStyle Hidden" \
-      >/dev/null 2>&1 || return 1
+      >/dev/null; then
+      echo "error: failed to launch zellij session '$session' via powershell.exe Start-Process" >&2
+      return 1
+    fi
   else
     ( nohup zellij attach -b "$session" </dev/null >/dev/null 2>&1 & ) || return 1
   fi
@@ -287,7 +291,11 @@ fm_backend_zellij_server_ensure() {  # <session>
     fm_backend_zellij_session_exists "$session" && return 0
     sleep 0.5
   done
-  echo "error: zellij session '$session' did not come up within 10s" >&2
+  if [ "$native_windows" -eq 1 ]; then
+    echo "error: zellij session '$session' did not come up within 10s after powershell.exe Start-Process launch" >&2
+  else
+    echo "error: zellij session '$session' did not come up within 10s" >&2
+  fi
   return 1
 }
 

@@ -466,6 +466,9 @@ LOG="${FM_POWERSHELL_LOG:?}"
   for a in "$@"; do printf '\x1f%s' "$a"; done
   printf '\n'
 } >> "$LOG"
+if [ -n "${FM_POWERSHELL_STATUS:-}" ]; then
+  exit "$FM_POWERSHELL_STATUS"
+fi
 if [ -n "${FM_POWERSHELL_STARTS_SESSION:-}" ]; then
   printf '%s\n' "$FM_POWERSHELL_STARTS_SESSION" >> "${FM_ZELLIJ_SESSION_FILE:?}"
 fi
@@ -527,12 +530,25 @@ test_server_ensure_refuses_unsafe_session_name_on_windows() {
   pass "fm_backend_zellij_server_ensure: refuses an unsafe session name before ever building the PowerShell command"
 }
 
+test_server_ensure_reports_powershell_launch_failure_on_windows() {
+  local dir fb out status
+  dir="$TMP_ROOT/server-windows-launch-failure"; mkdir -p "$dir"
+  fb=$(make_windows_zellij_fakebin "$dir")
+  out=$( OSTYPE=cygwin FM_FAKE_UNAME=MINGW64_NT-10.0-26120 PATH="$fb:$PATH" FM_ZELLIJ_LOG="$dir/zellij.log" FM_ZELLIJ_SESSION_FILE="$dir/sessions" \
+    FM_POWERSHELL_LOG="$dir/powershell.log" FM_POWERSHELL_STATUS=127 \
+    bash -c '. "$0/bin/backends/zellij.sh"; fm_backend_zellij_server_ensure firstmate' "$ROOT" 2>&1 )
+  status=$?
+  [ "$status" -ne 0 ] || fail "server_ensure should fail when powershell.exe cannot launch the session"
+  assert_contains "$out" "failed to launch zellij session 'firstmate' via powershell.exe Start-Process" \
+    "server_ensure did not report the failed PowerShell launch"
+  pass "fm_backend_zellij_server_ensure: reports native-Windows launch failures"
+}
+
 test_server_ensure_uses_nohup_on_cygwin() {
   # Cygwin implements real fork/setsid, so `&` detaches properly there and it
   # never had the Git Bash backgrounding problem - it also frequently has no
   # powershell.exe on PATH, so routing it through Start-Process would break a
-  # working platform. Same platform boundary as the lock fix's own
-  # fm_lock_legacy_dir_platform.
+  # working platform.
   local dir fb session_file
   dir="$TMP_ROOT/server-cygwin"; mkdir -p "$dir"
   fb=$(make_windows_zellij_fakebin "$dir")
@@ -1458,6 +1474,7 @@ test_session_exists_false_when_absent
 test_server_ensure_skips_attach_when_already_exists
 test_server_ensure_uses_powershell_start_process_on_windows
 test_server_ensure_refuses_unsafe_session_name_on_windows
+test_server_ensure_reports_powershell_launch_failure_on_windows
 test_server_ensure_uses_nohup_on_cygwin
 test_server_ensure_accepts_unusual_session_name_off_windows
 test_dispatch_routes_zellij_backend
