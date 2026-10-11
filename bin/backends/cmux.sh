@@ -406,6 +406,7 @@ fm_backend_cmux_surface_exists() {  # <workspace_id> <surface_id>
   # empty stdin instead of jq 1.7+'s failure (exit 4) - so a failed,
   # output-less list-panes call would misreport the surface as existing.
   out=$(fm_backend_cmux_cli list-panes --workspace "$wsid" --json --id-format uuids 2>/dev/null) || return 1
+  [ -n "$out" ] || return 1
   printf '%s' "$out" \
     | jq -e --arg s "$sfid" '[.panes[]? | select(.surface_ids // [] | index($s))] | length > 0' >/dev/null 2>&1
 }

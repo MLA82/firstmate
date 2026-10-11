@@ -86,7 +86,7 @@ version_output=$("$DESTINATION/herdr" --version 2>"$TMP/herdr-version.err") || {
 }
 installed_version=$(printf '%s' "$version_output" | awk '{print $2; exit}')
 [ "$installed_version" = "$FM_HERDR_CI_VERSION" ] \
-  || die "installed herdr version is '${installed_version:-<empty>}', expected exact pin $FM_HERDR_CI_VERSION"
+  || die "installed herdr version is '${installed_version:-<empty>}', expected exact pin $FM_HERDR_CI_VERSION; herdr --version said: $version_output"
 
 status=$("$DESTINATION/herdr" status --json 2>"$TMP/herdr-status.err") \
   || die "could not run 'herdr status --json' after install: $(cat "$TMP/herdr-status.err" 2>/dev/null)"

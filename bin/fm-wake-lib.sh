@@ -2195,7 +2195,7 @@ fm_wake_queued_keys() {
     signal|stale|check|heartbeat) ;;
     *) printf 'fm_wake_queued_keys: invalid wake kind: %s\n' "$kind" >&2; return 2 ;;
   esac
-  fm_lock_acquire_wait_bounded "$FM_WAKE_QUEUE_LOCK" "$FM_WAKE_QUEUE_LOCK_WAIT" || return 1
+  fm_lock_acquire_wait_bounded "$FM_WAKE_QUEUE_LOCK" "$FM_WAKE_QUEUE_LOCK_WAIT" || return $?
   fm_wake_queued_keys_locked "$kind"
   fm_lock_release "$FM_WAKE_QUEUE_LOCK"
 }

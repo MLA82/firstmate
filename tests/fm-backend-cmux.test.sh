@@ -545,6 +545,17 @@ SH
   pass "fm_backend_cmux_target_ready: fails when list-panes itself errors (not just when it reports no match)"
 }
 
+test_target_ready_fails_when_list_panes_succeeds_empty() {
+  local dir fb status
+  dir="$TMP_ROOT/ready-list-panes-empty"; mkdir -p "$dir/responses"
+  fb=$(make_cmux_fakebin "$dir")
+  PATH="$fb:$PATH" FM_CMUX_LOG="$dir/log" FM_CMUX_RESPONSES="$dir/responses" \
+    bash -c '. "$0/bin/backends/cmux.sh"; fm_backend_cmux_target_ready "aaaaaaaa-0000-0000-0000-000000000000:bbbbbbbb-1111-1111-1111-111111111111"' "$ROOT"
+  status=$?
+  [ "$status" -ne 0 ] || fail "target_ready should fail when list-panes succeeds with empty output"
+  pass "fm_backend_cmux_target_ready: rejects successful list-panes with empty output"
+}
+
 test_target_ready_checks_expected_label() {
   local dir fb title
   dir="$TMP_ROOT/ready-label-ok"; mkdir -p "$dir/responses"
@@ -1166,6 +1177,7 @@ test_create_task_refuses_duplicate_label
 test_create_task_creates_and_parses_ids
 test_target_ready_fails_when_target_absent
 test_target_ready_fails_when_list_panes_errors_empty
+test_target_ready_fails_when_list_panes_succeeds_empty
 test_target_ready_checks_expected_label
 test_target_ready_rejects_label_mismatch
 test_capture_trims_locally

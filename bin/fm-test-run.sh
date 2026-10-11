@@ -1230,6 +1230,7 @@ from pathlib import Path
 out = Path(sys.argv[1])
 inputs = [Path(p) for p in sys.argv[2:]]
 lanes = []
+skipped_inputs = []
 all_scripts = []
 failed = 0
 skipped = 0
@@ -1244,7 +1245,8 @@ for path in inputs:
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        print(f"fm-test-run.sh: skipping unreadable timing artifact {path}: {exc}", file=sys.stderr)
+        skipped_inputs.append(str(path))
+        print(f"::warning::fm-test-run.sh: skipping unreadable timing artifact {path}: {exc}", file=sys.stderr)
         continue
     summary = doc.get("summary") or {}
     lane = {
@@ -1270,8 +1272,10 @@ all_scripts.sort(key=lambda s: (-int(s.get("duration_ms") or 0), s.get("path") o
 agg = {
     "kind": "aggregate",
     "lanes": lanes,
+    "skipped_inputs": skipped_inputs,
     "summary": {
         "lanes": len(lanes),
+        "skipped_inputs": len(skipped_inputs),
         "total": total,
         "failed": failed,
         "skipped_gate": skipped,
@@ -1282,7 +1286,7 @@ agg = {
 }
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(json.dumps(agg, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-print(f"FM_TEST_AGGREGATE lanes={len(lanes)} total={total} failed={failed} skipped_gate={skipped} critical_path_duration_ms={wall_ms}")
+print(f"FM_TEST_AGGREGATE lanes={len(lanes)} skipped_inputs={len(skipped_inputs)} total={total} failed={failed} skipped_gate={skipped} critical_path_duration_ms={wall_ms}")
 PY
 }
 
