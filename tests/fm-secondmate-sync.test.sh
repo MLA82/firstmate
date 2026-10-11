@@ -838,14 +838,13 @@ test_seed_marker_clean_when_gitignored() {
   base=$(primary_head_commit "$w/main")
   seed_marked_home "$w" sm "$base"          # fresh home at the post-fix HEAD
 
-  # The exact dirtiness signal bin/fm-fleet-sync.sh reads (its line: dirty=yes when
-  # `git status --porcelain --untracked-files=no | head -1` is non-empty).
+  # A full porcelain read stays empty because the seed marker is ignored.
   [ -z "$(git -C "$w/sm" status --porcelain)" ] \
     || fail "seed marker still dirties a fresh home: $(git -C "$w/sm" status --porcelain)"
   # And the secondmate ff sweep sees no dirt: an at-HEAD home is a clean no-op.
   run_ff "$w/sm" "$base"
   [ "$FF_STATUS" = current ] || fail "fresh home not read as clean/current, got '$FF_STATUS': $FF_OUT"
-  pass "T12 gitignored marker: a freshly seeded home reads clean to fleet-sync and the ff sweep"
+  pass "T12 gitignored marker: a freshly seeded home has clean porcelain and ff state"
 }
 
 # --- T13: an existing marker-only-dirty home converges on the next sweep --------

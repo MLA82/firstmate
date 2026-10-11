@@ -461,7 +461,7 @@ ff_target() {
       && divergence_is_redundant "$dir" "$local_rev" "$base_rev"; then
       instr=$(changed_instr "$dir" "$base")
       before=$(git -C "$dir" rev-parse --short HEAD)
-      if git -C "$dir" reset --keep "$base" >/dev/null 2>&1; then
+      if out=$(git -C "$dir" reset --keep "$base" 2>&1); then
         after=$(git -C "$dir" rev-parse --short HEAD)
         FF_STATUS="updated"
         FF_INSTR="$instr"
@@ -473,7 +473,7 @@ ff_target() {
         fi
         return 0
       fi
-      echo "$label: skipped: redundant divergence could not be reconciled with reset --keep"
+      echo "$label: skipped: redundant divergence could not be reconciled with reset --keep: $(first_line "$out")"
       return 0
     fi
     if [ -n "$secondmate_id" ] && [ -n "$reconciliation_state" ]; then
