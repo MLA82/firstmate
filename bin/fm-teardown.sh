@@ -170,8 +170,9 @@
 # Orca is not a pool slot: it proves its recorded worktree through
 # require_orca_worktree_path_match instead, at the same single ownership
 # determination (require_owned_task_worktree_slot) and therefore before every
-# destructive step, --force included. An Orca worktree path that is already
-# gone has nothing left to protect and needs no proof.
+# destructive step, --force included. When the recorded Orca worktree path is
+# already gone, path comparison is skipped because no recorded path remains to
+# compare.
 # Orca tasks use the same safety checks, then close the recorded terminal and
 # remove the recorded worktree through `orca worktree rm`; teardown never guesses
 # an Orca target from ambient CLI state.
@@ -2501,8 +2502,9 @@ require_owned_task_worktree_slot() {
   # Orca is not a pool slot; it owns its own worktree and proves that through
   # require_orca_worktree_path_match_if_present instead of the treehouse claim
   # below. Whenever $WT still exists, that function refuses on any unresolved
-  # proof (missing CLI, mismatched path); when $WT is absent there is nothing
-  # left to protect, so it returns without calling Orca at all.
+  # proof (missing CLI, mismatched path); when $WT is absent it skips path
+  # comparison because no recorded path remains to compare and returns without
+  # calling Orca at all.
   if [ "$KIND" != secondmate ] && [ "$BACKEND" = orca ]; then
     require_orca_worktree_path_match_if_present "$ORCA_WORKTREE_ID" "$WT" || return 1
     return 0
@@ -3500,10 +3502,11 @@ if [ -n "$X_REQUEST" ]; then
   echo "warning: task $ID still carries an unreconciled Relay request link ($X_REQUEST) on its task record." >&2
 fi
 
-# require_owned_task_worktree_slot already proved this task's own recorded
-# worktree id resolves to $WT (or tolerated its absence) before any refusal
-# above ran. A ship task additionally requires the worktree to still be
-# inspectable, since the landed/dirty-work checks above need it.
+# require_owned_task_worktree_slot already checked that this task's recorded
+# worktree id resolves to an existing $WT, or skipped path comparison because
+# no recorded path remained to compare, before any refusal above ran. A ship
+# task additionally requires the worktree to still be inspectable, since the
+# landed/dirty-work checks above need it.
 if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] && [ "$FORCE" != "--force" ]; then
   if ! inspectable_git_worktree "$WT"; then
     echo "REFUSED: Orca ship task $ID has no inspectable git worktree at ${WT:-<missing>}." >&2
@@ -3621,13 +3624,14 @@ else
 fi
 
 # Every landed/discard-work refusal above has now passed (or --force skipped
-# them), and require_owned_task_worktree_slot has already proved this task
-# still owns $WT - treehouse pool claim or Orca path match alike. Fix 1 and
-# Fix 2 (see script header) run here, unconditionally on --force, and before
-# ANY destructive step below - a still-parked run or a leaked process can own
-# live work in this exact worktree. Not for kind=secondmate: a secondmate
-# home's own runtime lifecycle is owned by the dedicated process-event and
-# firstmate-home removal machinery further below, not by task-worktree cleanup.
+# them), and require_owned_task_worktree_slot has already run this backend's
+# ownership check. For Orca, an absent recorded path skips path comparison
+# because no recorded path remains to compare. Fix 1 and Fix 2 (see script
+# header) run here, unconditionally on --force, and before ANY destructive step
+# below - a still-parked run or a leaked process can own live work in this exact
+# worktree. Not for kind=secondmate: a secondmate home's own runtime lifecycle
+# is owned by the dedicated process-event and firstmate-home removal machinery
+# further below, not by task-worktree cleanup.
 if [ "$KIND" != secondmate ] && teardown_owns_worktree; then
   conclude_task_no_mistakes_run "$WT"
   reap_task_worktree_processes worktree "$WT" "$TASK_TMP"
@@ -3645,7 +3649,8 @@ fi
 "$SCRIPT_DIR/fm-remote-job-reap-orphans.sh" >&2 || true
 
 # Best-effort: drop the local task branch so the shared repo does not accumulate refs.
-# require_owned_task_worktree_slot already verified the Orca path match above.
+# require_owned_task_worktree_slot already checked the Orca path above, or
+# skipped path comparison because no recorded path remained to compare.
 if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
   if [ -d "$WT" ]; then
     branch=$(git -C "$WT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)
