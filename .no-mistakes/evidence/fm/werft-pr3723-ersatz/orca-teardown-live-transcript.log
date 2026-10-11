@@ -1,0 +1,55 @@
+SCENARIO: scout-stale
+exit_code=1
+stderr: fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-live-orca-teardown.QzFnaF/scout-stale/home
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stderr: ●  WATCHER DOWN - SUPERVISION IS OFF
+stderr: ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+stderr: ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+stderr: ●  This is a supervision warning only; the guarded operation WILL still run.
+stderr: ●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stderr: REFUSED: Orca worktree id worktree-scout-stale-task::/orca/worktree-scout-stale-task resolves to /tmp/fm-live-orca-teardown.QzFnaF/scout-stale/elsewhere, not inspected worktree /tmp/fm-live-orca-teardown.QzFnaF/scout-stale/worktree.
+stderr: Cannot verify dirty or unlanded work for the worktree Orca would remove; preserving metadata.
+orca_calls:
+  worktree|show|--worktree|id:worktree-scout-stale-task::/orca/worktree-scout-stale-task|--json
+worker_alive_after_refusal=yes
+hook_preserved=yes
+metadata_preserved=yes
+destructive_orca_calls=0
+
+SCENARIO: forced-ship-stale
+exit_code=1
+stderr: fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-live-orca-teardown.QzFnaF/forced-ship-stale/home
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stderr: ●  WATCHER DOWN - SUPERVISION IS OFF
+stderr: ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+stderr: ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+stderr: ●  This is a supervision warning only; the guarded operation WILL still run.
+stderr: ●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stderr: REFUSED: Orca worktree id worktree-forced-ship-stale-task::/orca/worktree-forced-ship-stale-task resolves to /tmp/fm-live-orca-teardown.QzFnaF/forced-ship-stale/elsewhere, not inspected worktree /tmp/fm-live-orca-teardown.QzFnaF/forced-ship-stale/worktree.
+stderr: Cannot verify dirty or unlanded work for the worktree Orca would remove; preserving metadata.
+orca_calls:
+  worktree|show|--worktree|id:worktree-forced-ship-stale-task::/orca/worktree-forced-ship-stale-task|--json
+worker_alive_after_refusal=yes
+hook_preserved=yes
+metadata_preserved=yes
+destructive_orca_calls=0
+
+SCENARIO: absent recorded path skips comparison but releases recorded Orca resources
+exit_code=0
+stderr: fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-live-orca-teardown.QzFnaF/absent-path/home
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stderr: ●  WATCHER DOWN - SUPERVISION IS OFF
+stderr: ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+stderr: ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+stderr: ●  This is a supervision warning only; the guarded operation WILL still run.
+stderr: ●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+stderr: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+stdout: teardown absent-path-task complete (window terminal-absent-path-task, worktree /tmp/fm-live-orca-teardown.QzFnaF/absent-path/already-gone-worktree)
+stdout: Backlog: absent-path-task just finished (this home keeps no markdown backlog at /tmp/fm-live-orca-teardown.QzFnaF/absent-path/home/data/backlog.md). Update /tmp/fm-live-orca-teardown.QzFnaF/absent-path/home/data/backlog.md - move absent-path-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+orca_calls:
+  terminal|close|--terminal|terminal-absent-path-task|--json
+  worktree|rm|--worktree|id:worktree-absent-path-task::/orca/worktree-absent-path-task|--force|--json
+metadata_removed=yes
+
