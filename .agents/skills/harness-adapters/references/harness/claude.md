@@ -60,6 +60,7 @@ Styled capture stays internal to the boolean detector; `fm-peek` and model-facin
 Claude Code disables transcript persistence when a new process inherits `CLAUDE_CODE_CHILD_SESSION` unless its process environment also sets `CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1`.
 `fm-spawn.sh` scopes that override to every new Claude ship, scout, and secondmate process without changing global Claude configuration.
 This is a vendor startup-time limitation, so the override does not alter an already-running session that started with persistence disabled.
+On 2026-10-11, `claude --version` reported 2.1.296 in the contribution environment; this records the installed version only, not an independent behavioral verification.
 
 ## Feedback drafts
 
