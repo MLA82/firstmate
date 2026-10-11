@@ -65,9 +65,10 @@
 # already moved. No two-phase journal exists.
 # Every newly durable backlog delivery attempts one marked wake to the receiving
 # endpoint, naming the routed item keys; a remote batch that reuses a
-# still-pending wake adds its keys to that wake's list. A local route moves
-# directly into the destination backlog, and a missing or rejected local wake
-# makes that command fail with the move intact so
+# still-pending wake attempts to add its keys to that wake's list, but a failed
+# message enrichment retains and retries the prior durable wake. A local route
+# moves directly into the destination backlog, and a missing or rejected local
+# wake makes that command fail with the move intact so
 # rerunning the same handoff retries its prepared wake intent. After a durable
 # remote receipt, the outbox is released and the handoff succeeds regardless of
 # the best-effort wake outcome; an undelivered remote wake remains separately
@@ -160,9 +161,9 @@ receiver_wake_message_clear() {  # <secondmate-id>
   rm -f -- "$(receiver_wake_message_path "$1")"
 }
 
-# A still-pending wake that a later batch reuses must name every item routed
-# since it was recorded, so the new keys are merged into the stored list. A
-# stored generic line names no items and is left as it is.
+# Merge later routed keys into a still-pending wake when its stored message has
+# an item list. The remote handoff caller treats a failed durable rewrite as
+# cosmetic and retries the unchanged wake; a stored generic line is unchanged.
 receiver_wake_message_add_keys() {  # <secondmate-id> <item-key>...
   local id=$1 prefix="$RECEIVER_WAKE_MESSAGE Routed: " message key
   local -a keys=()
