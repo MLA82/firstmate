@@ -4327,7 +4327,7 @@ test_wait_for_working_samples_budget_endpoint_without_final_sleep() {
 }
 
 # assert_submit_min_confirm_budget <case> [decimal-comma]: a 0.4s caller budget is expanded to the
-# 0.6s herdr floor and spread as five 0.1200s sleeps, in the caller's locale.
+# 0.6s herdr floor and spread as five 0.1200s sleeps, regardless of the caller's locale.
 assert_submit_min_confirm_budget() {
   local dir log resp fb out sleep_log sleeps decimal_fixture=${2:-} real_awk
   dir="$TMP_ROOT/$1"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; sleep_log="$dir/sleeps"; : > "$log"; : > "$sleep_log"
