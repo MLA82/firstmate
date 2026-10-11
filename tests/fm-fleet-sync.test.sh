@@ -396,8 +396,8 @@ test_detached_checkout_collision_is_stuck_with_reason() {
 test_untracked_collision_blocks_ff_stuck_with_reason() {
   local home clone work out
   home=$(new_home)
-  clone=$(build_pair "$home" omicron)
-  work="$home/work-omicron"
+  clone=$(build_pair "$home" phi)
+  work="$home/work-phi"
   # Origin adds a new tracked file; the clone independently has an untracked
   # file at that same path, so git's own ff-only protection must refuse the
   # merge rather than silently overwrite it. That never clears on its own, so
@@ -408,7 +408,7 @@ test_untracked_collision_blocks_ff_stuck_with_reason() {
 
   out=$(LC_ALL=C run_sync "$home" "$clone")
 
-  assert_contains "$out" "omicron: STUCK: on branch main, " \
+  assert_contains "$out" "phi: STUCK: on branch main, " \
     "a colliding fast-forward stays loudly STUCK"
   assert_contains "$out" "- needs attention (fast-forward failed: " \
     "the STUCK line names the refused fast-forward"
