@@ -4339,6 +4339,9 @@ test_send_text_submit_applies_herdr_minimum_confirm_budget() {
 }
 
 test_send_text_submit_confirm_budget_ignores_decimal_comma_locale() {
+  local decimal_probe
+  decimal_probe=$(LC_ALL=de_DE.UTF-8 awk 'BEGIN { printf "%.1f", 0.5 }' 2>/dev/null)
+  [ "$decimal_probe" = "0,5" ] || fail "de_DE.UTF-8 awk must emit a decimal comma for this regression, got '$decimal_probe'"
   LC_ALL=de_DE.UTF-8 assert_submit_min_confirm_budget submit-min-budget-de
   pass "fm_backend_herdr_send_text_submit: the herdr minimum confirmation budget holds under a decimal-comma locale"
 }
