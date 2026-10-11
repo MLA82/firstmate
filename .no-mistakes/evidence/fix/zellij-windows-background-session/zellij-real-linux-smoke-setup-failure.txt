@@ -1,0 +1,5 @@
+ok - real zellij: version_check accepts the installed binary's version
+error: zellij session 'fm-backend-smoke-2763945' did not come up within 10s
+not ok - container_ensure failed
+zellij safety guard: refusing - session 'fm-backend-smoke-2763945' not found in 'zellij list-sessions'
+zellij safety guard: refusing - session 'fm-backend-smoke-2763945' not found in 'zellij list-sessions'

@@ -1,0 +1,3 @@
+launch_session=fm smoke+live-2802560
+listed_after_launcher_exit=fm smoke+live-2802560
+cleanup=confirmed
